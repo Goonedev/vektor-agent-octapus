@@ -95,7 +95,7 @@
         "provider": "github",
         "owner": "Goonedev",
         "repo": "vektor-agent-octapus",
-        "releaseType": "release"
+        "releaseType": "draft"
       }
     ]
   }
