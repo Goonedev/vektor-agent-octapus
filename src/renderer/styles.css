@@ -546,3 +546,18 @@ h2.mt { margin-top: 26px; }
 .card.cancelled { opacity: .5; }
 .card.cancelled .timer-ring span { text-decoration: line-through; }
 .suggestions[hidden] { display: none; }
+
+/* updates */
+.update-panel { grid-column: 1 / -1; }
+.update-row { display: flex; align-items: center; gap: 12px; }
+.update-row .card-icon { --tone: var(--accent); width: 40px; height: 40px; border-radius: 12px; }
+.update-row .row-main b { font-size: 14px; }
+.update-row .row-main small { white-space: normal; }
+.update-bar { height: 6px; border-radius: 999px; background: var(--fill); overflow: hidden; margin-top: 14px; }
+.update-bar[hidden] { display: none; }
+.update-bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--accent-solid); transition: width .3s ease; }
+.rail button { position: relative; }
+.badge-dot { position: absolute; top: 8px; right: 14px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-solid); box-shadow: 0 0 0 2px var(--surface); }
+.badge-dot[hidden] { display: none; }
+.toast button { pointer-events: auto; margin-left: 6px; color: var(--accent); font-weight: 600; }
+.btn[hidden], .icon-btn[hidden] { display: none; }

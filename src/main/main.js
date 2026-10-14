@@ -12,6 +12,7 @@ const { Scheduler } = require('./scheduler');
 const tools = require('./tools');
 const { setKnownDirs, setNativeDir } = require('./tools/util');
 const clip = require('./clip');
+const { setupUpdater } = require('./updater');
 
 const isMac = process.platform === 'darwin';
 const isWin = process.platform === 'win32';
@@ -27,6 +28,7 @@ let miniWindow = null;
 let tray = null;
 let store, scheduler;
 let quitting = false;
+let updater = { check: () => {} };
 let lastState = { phase: 'idle', label: 'Hazır', level: 0 };
 
 const DEFAULTS = {
@@ -290,6 +292,7 @@ function createTray() {
         broadcast('settings:changed', next);
       }
     },
+    { label: 'Güncellemeleri denetle', click: () => updater.check() },
     { type: 'separator' },
     { label: 'Çıkış', click: () => { quitting = true; app.quit(); } }
   ]));
@@ -330,6 +333,7 @@ app.whenReady().then(async () => {
 
   createMainWindow();
   if (store.get('settings').miniIsland) createMiniWindow();
+  updater = setupUpdater({ broadcast, notify });
   createTray();
   registerShortcut();
 

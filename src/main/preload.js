@@ -72,5 +72,12 @@ contextBridge.exposeInMainWorld('vektor', {
 
   app: {
     info: () => ipcRenderer.invoke('app:info')
+  },
+
+  update: {
+    status: () => ipcRenderer.invoke('update:status'),
+    check: () => ipcRenderer.invoke('update:check'),
+    install: () => ipcRenderer.invoke('update:install'),
+    onStatus: on('update:status')
   }
 });

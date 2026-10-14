@@ -454,6 +454,36 @@ function shortcutLabel(accel) {
   return accel.replace('CommandOrControl', mac ? '⌘' : 'Ctrl').replace('Shift', mac ? '⇧' : 'Shift').replace('Alt', mac ? '⌥' : 'Alt').replace('Space', 'Space').replace(/\+/g, mac ? '' : '+');
 }
 
+/* ------------------------------------------------------------------ updates */
+
+let updateToastShown = false;
+
+function renderUpdate(st) {
+  if (!st) return;
+  $('#update-title').textContent = `Vektör ${st.current || ''}`.trim();
+  const unsupported = st.supported === false;
+  const msg = unsupported
+    ? 'Uygulama içi güncelleme, kurulum dosyasıyla (Vektor-Setup.exe) kurulan sürümde çalışır.'
+    : st.state === 'downloading' ? `Vektör ${st.version || ''} indiriliyor… %${st.percent || 0}`
+      : st.message || 'Vektör açıkken güncellemeleri kendisi denetler.';
+  $('#update-msg').textContent = msg;
+  $('#update-check').hidden = st.state === 'ready';
+  $('#update-check').disabled = unsupported || st.state === 'checking' || st.state === 'downloading';
+  $('#update-install').hidden = st.state !== 'ready';
+  $('#update-bar-wrap').hidden = st.state !== 'downloading';
+  $('#update-bar').style.width = `${st.percent || 0}%`;
+  $('#update-dot').hidden = st.state !== 'ready';
+  if (st.state === 'ready' && !updateToastShown) {
+    updateToastShown = true;
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.innerHTML = `${icon('sparkles')}<span>Vektör ${esc(st.version)} hazır.</span><button type="button">Yeniden başlat</button>`;
+    el.querySelector('button').addEventListener('click', () => api.update.install());
+    $('#toasts').append(el);
+    setTimeout(() => el.remove(), 15000);
+  }
+}
+
 /* --------------------------------------------------------------- navigation */
 
 function openView(view, after) {
@@ -604,6 +634,11 @@ function wire() {
   });
   api.settings.onChange((s) => { state.settings = s; if (state.view === 'settings') fillSettings(); });
 
+  // Updates
+  $('#update-check').addEventListener('click', async () => renderUpdate(await api.update.check()));
+  $('#update-install').addEventListener('click', () => api.update.install());
+  api.update.onStatus(renderUpdate);
+
   // Confirm
   api.confirm.onRequest(showConfirm);
   api.confirm.onClosed(({ id }) => closeConfirm(id));
@@ -660,6 +695,7 @@ async function boot() {
   renderTimers();
   renderPhase();
   wire();
+  api.update.status().then(renderUpdate);
   loop();
   agent.dispatchEvent(new CustomEvent('phase', { detail: 'offline' }));
   if (!settings.apiKey) {

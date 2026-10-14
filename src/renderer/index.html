@@ -34,7 +34,7 @@
     <button data-view="activity" title="Etkinlik"><span data-icon="activity"></span><small>Etkinlik</small></button>
     <button data-view="notes" title="Notlar"><span data-icon="note"></span><small>Notlar</small></button>
     <span class="rail-spacer"></span>
-    <button data-view="settings" title="Ayarlar"><span data-icon="gear"></span><small>Ayarlar</small></button>
+    <button data-view="settings" title="Ayarlar"><span data-icon="gear"></span><small>Ayarlar</small><i class="badge-dot" id="update-dot" hidden></i></button>
   </nav>
 
   <main class="stage">
@@ -163,6 +163,16 @@
             <input name="shortcut" spellcheck="false">
             <small>Her yerden dinlemeyi aç/kapat. Örn. CommandOrControl+Shift+Space</small>
           </label>
+        </div>
+        <div class="panel glass update-panel">
+          <h2>Güncellemeler</h2>
+          <div class="update-row">
+            <span class="card-icon" data-icon="sparkles"></span>
+            <div class="row-main"><b id="update-title">Vektör</b><small id="update-msg">Güncelleme durumu yükleniyor…</small></div>
+            <button type="button" class="btn secondary sm" id="update-check">Güncellemeleri denetle</button>
+            <button type="button" class="btn primary sm" id="update-install" hidden>Yeniden başlat ve güncelle</button>
+          </div>
+          <div class="update-bar" id="update-bar-wrap" hidden><i id="update-bar"></i></div>
         </div>
         <div class="settings-foot">
           <span class="saved" id="settings-saved">Kaydedildi</span>

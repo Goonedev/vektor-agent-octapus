@@ -12,13 +12,15 @@
     "dev": "npm run build && electron . --dev",
     "smoke": "npm run build && VEKTOR_SMOKE=./out/smoke electron .",
     "test": "node --test test/*.test.js",
-    "dist": "npm run build && electron-builder",
-    "dist:win": "npm run build && electron-builder --win",
-    "dist:mac": "npm run build && electron-builder --mac",
-    "dist:linux": "npm run build && electron-builder --linux"
+    "dist": "npm run build && electron-builder --publish never",
+    "dist:win": "npm run build && electron-builder --win --publish never",
+    "dist:mac": "npm run build && electron-builder --mac --publish never",
+    "dist:linux": "npm run build && electron-builder --linux --publish never",
+    "release:win": "npm run build && electron-builder --win --publish always"
   },
   "dependencies": {
-    "@google/genai": "2.24.0"
+    "@google/genai": "2.24.0",
+    "electron-updater": "6.8.9"
   },
   "devDependencies": {
     "electron": "44.4.5",
@@ -46,32 +48,55 @@
     ],
     "win": {
       "target": [
-        "nsis"
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
-      "icon": "assets/icon.png"
+      "icon": "assets/icon.png",
+      "artifactName": "Vektor-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
+      "perMachine": false,
       "allowToChangeInstallationDirectory": true,
-      "shortcutName": "Vektör"
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Vektör",
+      "uninstallDisplayName": "Vektör",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
     },
     "mac": {
       "target": [
-        "dmg"
+        "dmg",
+        "zip"
       ],
       "icon": "assets/icon.png",
       "category": "public.app-category.productivity",
       "extendInfo": {
         "NSMicrophoneUsageDescription": "Vektör seni duyabilmek için mikrofona erişir.",
         "NSAppleEventsUsageDescription": "Vektör uygulamaları ve sistemi senin isteğinle yönetir."
-      }
+      },
+      "artifactName": "Vektor-${version}-${arch}.${ext}"
     },
     "linux": {
       "target": [
         "AppImage"
       ],
       "icon": "assets/icon.png",
-      "category": "Utility"
-    }
+      "category": "Utility",
+      "artifactName": "Vektor-${version}.${ext}"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Goonedev",
+        "repo": "vektor-agent-octapus",
+        "releaseType": "release"
+      }
+    ]
   }
 }

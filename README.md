@@ -36,7 +36,24 @@ npm start
 
 Kullanmak için ortadaki küreye dokun ya da her yerden **Ctrl+Shift+Space** (macOS'ta ⌘⇧Space) kısayoluna bas ve konuş. Yazarak da sorabilirsin.
 
-### Kurulum dosyası üretmek
+### Hazır kurulum dosyası (Windows)
+
+Node.js'e gerek yok: [Releases](https://github.com/Goonedev/vektor-agent-octapus/releases/latest) sayfasından **`Vektor-Setup-x.y.z.exe`** dosyasını indirip çalıştır. Kurulum, masaüstüne ve Başlat menüsüne kısayol ekler. Kod imzalı olmadığı için Windows "bilgisayarınızı korudu" uyarısı verebilir; **Ek bilgi › Yine de çalıştır** ile devam et.
+
+### Uygulama içi güncelleme
+
+Kurulum dosyasıyla kurulan Vektör, açılışta ve dört saatte bir GitHub Releases'ı denetler. Yeni sürüm varsa arka planda indirir; **Ayarlar › Güncellemeler**'de ve bildirimde **"Yeniden başlat ve güncelle"** düğmesi çıkar. Düğmeye basmasan da güncelleme bir sonraki kapanışta kurulur. Tepsi menüsünde "Güncellemeleri denetle" de var.
+
+### Yeni sürüm yayınlamak
+
+```bash
+npm version patch        # 0.1.0 → 0.1.1 (package.json'ı günceller, commit ve v0.1.1 etiketi oluşturur)
+git push --follow-tags   # etiketi GitHub'a gönderir
+```
+
+Etiket gidince `.github/workflows/release.yml` Windows sunucusunda testleri çalıştırır, kurulum dosyasını derler ve aynı adla bir GitHub Release yayınlar. Kurulu tüm Vektör'ler birkaç saat içinde (ya da "Güncellemeleri denetle" ile hemen) yeni sürüme geçer. Etiket ile `package.json` sürümü uyuşmazsa yayın durur.
+
+Yerelde kurulum dosyası üretmek istersen (yayınlamadan):
 
 ```bash
 npm run dist:win     # Windows .exe kurulum dosyası (Windows'ta çalıştır)
@@ -70,6 +87,7 @@ src/
     store.js            ayarlar, notlar, görevler (JSON, atomik yazma)
     scheduler.js        zamanlayıcı, alarm, hatırlatıcı
     smoke.js            uçtan uca duman testi
+    updater.js          GitHub Releases üzerinden uygulama içi güncelleme
   renderer/             ana pencere
     live.js             Gemini Live oturumu: mikrofon akışı, ses, araç çağrıları
     audio.js            16 kHz PCM yakalama (AudioWorklet), 24 kHz kesintisiz oynatma
