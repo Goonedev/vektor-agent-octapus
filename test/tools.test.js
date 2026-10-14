@@ -211,3 +211,45 @@ test('array parameters accept a JSON string from the model', () => {
   const out = tools.coerce({ steps: '[{"tool":"calculate"}]' }, { steps: { type: 'array', items: { type: 'object' } } });
   assert.deepEqual(out.steps, [{ tool: 'calculate' }]);
 });
+
+test('the full library has 500+ tools; only core tools are declared to the live model', () => {
+  assert.ok(tools.TOOLS.length >= 500, `only ${tools.TOOLS.length} tools`);
+  const declared = tools.declarations().map((d) => d.name);
+  assert.ok(declared.length < 140, `${declared.length} declarations is too many for a live session`);
+  for (const n of ['find_tools', 'use_tool', 'find_a_way', 'run_steps', 'open_app']) assert.ok(declared.includes(n), n);
+  assert.ok(!declared.some((n) => /^(settings|site|search|key|text|calc|info|sys|files|dev)_/.test(n) && !['search_files'].includes(n)));
+  const index = tools.packIndex();
+  for (const t of tools.TOOLS.filter((x) => x.pack)) assert.ok(index.includes(t.name), `${t.name} missing from the pack index`);
+});
+
+test('find_tools ranks library tools by Turkish keywords', async () => {
+  const r = await tools.execute('find_tools', { query: 'bluetooth ayarları' }, {});
+  assert.ok(r.ok);
+  assert.ok(r.data.tools.some((t) => /bluetooth/.test(t.name)), JSON.stringify(r.data.tools.map((t) => t.name)));
+  const none = await tools.execute('find_tools', { query: 'zzqx' }, {});
+  assert.ok(none.ok);
+  assert.equal(none.data.tools.length, 0);
+});
+
+test('use_tool runs a library tool, reports failures and refuses nesting', async () => {
+  const ok = await tools.execute('use_tool', { name: 'calc_factorial', args_json: '{"n":5}' }, {});
+  assert.ok(ok.ok, ok.summary);
+  assert.match(ok.summary, /120/);
+  const missing = await tools.execute('use_tool', { name: 'calc_factorial', args_json: '{}' }, {});
+  assert.equal(missing.ok, false);
+  assert.ok(missing.data.params);
+  const unknown = await tools.execute('use_tool', { name: 'nope_tool' }, {});
+  assert.equal(unknown.ok, false);
+  const nested = await tools.execute('use_tool', { name: 'run_steps', args_json: '{}' }, {});
+  assert.equal(nested.ok, false);
+});
+
+test('use_tool still routes dangerous library tools through confirmation', async () => {
+  const danger = tools.TOOLS.find((t) => t.pack && t.danger === true && Object.values(t.params || {}).every((p) => !p.required));
+  assert.ok(danger, 'expected at least one dangerous pack tool without required params');
+  let asked = 0;
+  const r = await tools.execute('use_tool', { name: danger.name, args_json: '{}' }, { confirm: async () => { asked++; return false; } });
+  assert.equal(asked, 1);
+  assert.equal(r.ok, false);
+  assert.equal(r.denied, true);
+});

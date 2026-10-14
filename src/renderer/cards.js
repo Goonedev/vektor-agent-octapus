@@ -18,7 +18,12 @@ export const CATEGORY_STYLE = {
   productivity: { color: 'var(--yellow)', icon: 'timer' },
   utility: { color: 'var(--brown)', icon: 'calculator' },
   network: { color: 'var(--teal)', icon: 'wifi' },
-  dev: { color: 'var(--gray)', icon: 'terminal' }
+  dev: { color: 'var(--gray)', icon: 'terminal' },
+  settings: { color: 'var(--gray)', icon: 'gear' },
+  sites: { color: 'var(--blue)', icon: 'link' },
+  shortcuts: { color: 'var(--purple)', icon: 'keyboard' },
+  text: { color: 'var(--indigo)', icon: 'doc' },
+  info: { color: 'var(--cyan)', icon: 'info' }
 };
 
 const fileUrl = (p) => 'file:///' + String(p).replace(/\\/g, '/').replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/').replace(/^([A-Za-z])%3A/, '$1:');

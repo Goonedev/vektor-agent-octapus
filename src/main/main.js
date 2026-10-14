@@ -131,6 +131,7 @@ function toolContext(source) {
 
 ipcMain.handle('tools:catalog', () => tools.catalog());
 ipcMain.handle('tools:declarations', () => tools.declarations());
+ipcMain.handle('tools:packIndex', () => tools.packIndex());
 ipcMain.handle('tools:execute', async (e, { name, args, source = 'model', callId }) => {
   broadcast('tool:start', { name, args, source, callId, at: Date.now() });
   const result = await tools.execute(name, args, toolContext(source));
