@@ -11,9 +11,10 @@ Vektör, bilgisayarında yaşayan sesli bir yapay zekâ asistanı. Konuşursun, 
 - **Sesli, canlı arayüz.** Ortadaki cam küre dinlerken maviye, seni duyarken turkuaza, düşünürken mora, araç çalıştırırken turuncuya döner; kenarı ve halkaları sesin şiddetiyle nefes alır. Konuşmanın yazılı dökümü altta akar.
 - **Canlı bileşenler.** Her araç çağrısı sağ panelde bir kart olarak açılır ve sonucuna göre şekil alır: hava durumu kartı, CPU/bellek halkaları, dosya listeleri, ekran görüntüsü önizlemesi, geri sayan zamanlayıcılar, klavye kısayolu tuşları, terminal çıktısı.
 - **Mini ada.** Ekranın en üstünde, Dynamic Island tarzı küçük bir çubuk. Her zaman üstte durur, Vektör'ün o anki durumunu, konuşmanın altyazısını ve çalışan aracı gösterir. Üzerine gelince mikrofon ve "aç" düğmeleri çıkar; geri kalan alana tıklamalar arkadaki pencerelere geçer.
-- **107 işlevsel araç.** Hepsi bilgisayarda gerçekten bir şey yapar; Windows, macOS ve Linux için ayrı ayrı uygulanmıştır. Tam liste aşağıda.
+- **110 işlevsel araç.** Hepsi bilgisayarda gerçekten bir şey yapar; Windows, macOS ve Linux için ayrı ayrı uygulanmıştır. Tam liste aşağıda.
 - **İşi sonuna kadar götürür.** Açılan "Yükle", "İndir", "Kaydet", "Tamam" gibi düğmelere her uygulamada kendisi basar (click_button).
 - "Şarkı aç" dersen YouTube'da bulup videoyu oynatır; "Steam'den X'i indir" dersen kurulumu başlatıp "Yükle"ye basar; "şu projede şunu düzelt" dersen Claude Code'u o klasörde çalıştırıp sonucu özetler.
+- **Web araştırması.** Tarayıcı açmadan web'de arayıp kaynak sayfaları okuyarak soruları yanıtlar (deep_research), kaynaklarıyla birlikte. Bir dosyayı araştırıp bulur ve onayınla indirir (find_download_link + download_from_web).
 - **Çok adımlı işler.** Birden fazla aracı, gerekirse aynısını birkaç kez, sırayla çalıştırır; adımları önceden biliyorsa run_steps ile tek planda yapar (aç → bekle → bas → bildir). Bir adım başarısız olursa ya da reddedilirse orada durur ve nedenini söyler.
 - **Onay her yerde.** Riskli işlerde onay ana pencerede ve mini adada çıkar; ekranın üstünden "İzin ver / Reddet" dersin.
 - **Güvenlik.** Silme, kapatma, komut çalıştırma gibi riskli araçlar çalışmadan önce bir onay penceresi açılır (Enter = izin ver, Esc = reddet, 45 saniyede otomatik ret).
@@ -90,7 +91,7 @@ src/
   main/                 Electron ana süreci
     main.js             pencereler, mini ada, tepsi, kısayol, onay akışı, IPC
     preload.js          arayüze açılan güvenli köprü (window.vektor)
-    tools/              107 araç — kategori başına bir dosya
+    tools/              110 araç — kategori başına bir dosya
       index.js          kayıt, Gemini şeması, çalıştırma, onay
       util.js           platform yardımcıları (PowerShell, AppleScript, xdotool...)
     native/             Windows yerel yardımcısı (C#)
@@ -120,11 +121,11 @@ npm run dev       # geliştirici araçlarıyla başlatır
 
 Yeni bir araç eklemek için ilgili kategori dosyasına `{ name, category, title, description, params, run }` biçiminde bir nesne eklemen yeterli; Gemini şeması, araç kütüphanesi ve kartlar otomatik oluşur. Sonucun arayüzde nasıl görüneceğini `display.type` belirler (`stats`, `list`, `weather`, `image`, `timer`, `kv`, `value`...).
 
-## 107 araç
+## 110 araç
 
 *onaylı* işaretli araçlar çalışmadan önce izin ister.
 
-### Web (10)
+### Web (13)
 
 | Araç | Ne yapar |
 | --- | --- |
@@ -138,6 +139,9 @@ Yeni bir araç eklemek için ilgili kategori dosyasına `{ name, category, title
 | `read_webpage` | Bir web sayfasının metnini indirir, böylece içeriğini özetleyebilir ya da soruları yanıtlayabilirsin. |
 | `check_website` | Bir web sitesinin açık olup olmadığını ve yanıt süresini kontrol eder. |
 | `download_file` | Bir adresteki dosyayı İndirilenler klasörüne kaydeder. |
+| `deep_research` | Bir soruyu web'de araştırır: arama yapar, kaynak sayfaları okur ve kaynaklı bir cevap verir. Tarayıcı açmaz. Güncel, çok kaynaklı ya da derinlemesine bilgi gerektiren sorularda (fiyat, karşılaştırma, "en iyi X", haber, teknik detay) bunu kullan; sonucu kullanıcıya sesli özetle. |
+| `find_download_link` | Bir dosyanın (program, belge, sürücü, PDF...) nereden indirilebileceğini araştırır ve doğrudan indirme bağlantıları önerir. Resmi kaynakları tercih eder. Bulduktan sonra kullanıcı onaylarsa download_from_web ile indir. |
+| `download_from_web` · *onaylı* | Verilen bir adresteki dosyayı İndirilenler klasörüne indirir. Genelde find_download_link ile bulunan bir adresle kullanılır. İsteğe bağlı olarak indirince açar. |
 
 ### Uygulamalar (9)
 

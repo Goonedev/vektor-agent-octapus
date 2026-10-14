@@ -28,7 +28,8 @@ const TOOLS = [
   ...require('./utility'),
   ...require('./actions'),
   ...require('./ui'),
-  ...require('./steps')
+  ...require('./steps'),
+  ...require('./research')
 ];
 
 const BY_NAME = new Map(TOOLS.map((t) => [t.name, t]));
@@ -53,7 +54,8 @@ const ICONS = {
   generate_password: 'key', random_pick: 'dice', ping_host: 'activity', dns_lookup: 'globe', check_port: 'plug',
   git_status: 'code', open_in_vscode: 'code',
   play_youtube: 'play', steam_install: 'arrows', steam_launch: 'play', ask_claude_code: 'sparkles',
-  click_button: 'pointer', list_buttons: 'window', run_steps: 'layers'
+  click_button: 'pointer', list_buttons: 'window', run_steps: 'layers',
+  deep_research: 'search', find_download_link: 'arrows', download_from_web: 'arrows'
 };
 
 /* ------------------------------------------------------------ schema */

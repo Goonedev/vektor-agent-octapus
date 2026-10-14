@@ -10,6 +10,9 @@ export const MODELS = [
   { id: 'gemini-live-2.5-flash-preview', label: 'Gemini Live 2.5 Flash (yarı çift yönlü)' }
 ];
 
+const CONTROL_TOKEN = /<ctrl\d+>/i;
+const stripControl = (t) => t.replace(/<ctrl\d+>/gi, '');
+
 export const VOICES = ['Kore', 'Puck', 'Charon', 'Fenrir', 'Aoede', 'Leda', 'Orus', 'Zephyr', 'Sulafat', 'Achird'];
 
 function systemPrompt(settings, info) {
@@ -26,6 +29,8 @@ Araçlar:
 - Bilgisayarı gerçekten yönetebilirsin: uygulama açma/kapama, web, dosyalar, ses, parlaklık, pencere, klavye/fare, pano, ekran görüntüsü, zamanlayıcı, not, hava durumu, döviz ve daha fazlası. Kullanıcı bir şey istediğinde mümkünse aracı kullan; "yapamam" demeden önce araç listesine bak.
 - İşi yarım bırakma, sonuna kadar götür. Gerekirse birkaç aracı art arda çağır. Örnekler: "şarkı aç" → play_youtube (arama sayfasında bırakma, videoyu oynat); "Steam'den X'i indir" → steam_install; "X oyununu aç" → steam_launch; "şu projede şunu düzelt" → ask_claude_code. Bir araç başarısız olursa başka bir yoldan dene.
 - Çoğu iş bir onay/kurulum penceresiyle biter ("Yükle", "İndir", "Kaydet", "Tamam", "Evet", "İleri"). Bu pencerelerde işi bitirmek için click_button aracını o düğmenin adıyla çağır; arama sayfasında ya da açık pencerede bırakma. Hangi düğmelerin olduğundan emin değilsen önce list_buttons ile bak. click_button her uygulamada çalışır, sadece Steam'de değil.
+- Güncel, çok kaynaklı ya da araştırma gerektiren sorularda (fiyat, hava durumu dışındaki karşılaştırmalar, "en iyi X", haber, teknik bilgi) deep_research kullan; tarayıcı açmadan web'de araştırır. Hava durumu için get_weather yeterli.
+- Kullanıcı bir dosya/program indirmek isterse önce find_download_link ile araştır, bulduğun bağlantıyı kullanıcıya söyle, onaylarsa download_from_web ile indir. Korsan/crack kaynak önerme.
 - Çok adımlı işlerde araçları zincirle: birden fazla aracı, gerekirse aynı aracı birkaç kez çağırabilirsin. Adımları önceden biliyorsan run_steps ile tek planda sırayla yaptır (aç → bekle → bas → bildir gibi; pencere açılması gerekiyorsa wait_ms ver). Bir sonraki adım önceki sonuca bağlıysa araçları tek tek çağır, her sonucu oku ve iş bitene kadar devam et.
 - Her araç sonucundan sonra kendine sor: istek tamamen bitti mi? Bitmediyse bir sonraki aracı çağır; bittiyse kısaca söyle.
 - Sadece kullanıcının istediği işi yap; kendi kafana göre yeni görevler başlatma.
@@ -201,6 +206,7 @@ export class LiveAgent extends EventTarget {
 
   sendText(text) {
     if (!this.session) return false;
+    this.retriedTurn = false;
     this.player.stop();
     this.thinking = true;
     this.session.sendClientContent({ turns: [{ role: 'user', parts: [{ text }] }], turnComplete: true });
@@ -219,6 +225,8 @@ export class LiveAgent extends EventTarget {
   }
 
   onMessage(m) {
+    // Gemini sometimes leaks internal control tokens such as <ctrl46> into the transcript,
+    // typically when a tool call came out malformed. They are never meant for the user.
     if (m.sessionResumptionUpdate?.resumable && m.sessionResumptionUpdate.newHandle) {
       this.resumeHandle = m.sessionResumptionUpdate.newHandle;
     }
@@ -231,12 +239,14 @@ export class LiveAgent extends EventTarget {
         this.flushModel(true);
       }
       if (sc.inputTranscription?.text) {
+        this.retriedTurn = false;
         this.userText += sc.inputTranscription.text;
         this.thinking = true;
         this.emit('user-text', { text: this.userText.trim(), final: false });
       }
       for (const part of sc.modelTurn?.parts || []) {
         if (part.inlineData?.data && part.inlineData.mimeType?.startsWith('audio')) {
+          this.turnHadAudio = true;
           this.thinking = false;
           this.player.enqueue(part.inlineData.data);
         }
@@ -244,18 +254,42 @@ export class LiveAgent extends EventTarget {
       if (sc.outputTranscription?.text) {
         if (this.userText) this.flushUser();
         this.thinking = false;
-        this.modelText += sc.outputTranscription.text;
-        this.emit('model-text', { text: this.modelText.trim(), final: false });
+        const raw = sc.outputTranscription.text;
+        if (CONTROL_TOKEN.test(raw)) this.turnHadControlTokens = true;
+        this.modelText += stripControl(raw);
+        if (this.modelText.trim()) this.emit('model-text', { text: this.modelText.trim(), final: false });
       }
       if (sc.turnComplete || sc.generationComplete) {
         this.thinking = false;
         this.flushUser();
-        if (sc.turnComplete) this.flushModel(false);
+        if (sc.turnComplete) {
+          const broken = this.turnHadControlTokens && !this.modelText.trim() && !this.turnHadTool;
+          this.flushModel(false);
+          if (broken) this.retryBrokenTurn();
+          this.turnHadControlTokens = this.turnHadAudio = this.turnHadTool = false;
+        }
       }
     }
 
-    if (m.toolCall?.functionCalls?.length) this.runTools(m.toolCall.functionCalls);
+    if (m.toolCall?.functionCalls?.length) {
+      this.turnHadTool = true;
+      this.runTools(m.toolCall.functionCalls);
+    }
     if (m.toolCallCancellation?.ids) this.emit('tool-cancel', { ids: m.toolCallCancellation.ids });
+  }
+
+  /** A turn that produced only control tokens: ask the model once to answer properly. */
+  retryBrokenTurn() {
+    if (this.retriedTurn || !this.session) return;
+    this.retriedTurn = true;
+    this.thinking = true;
+    this.emit('notice', { message: 'Cevap bozuk geldi, yeniden deniyorum…' });
+    try {
+      this.session.sendClientContent({
+        turns: [{ role: 'user', parts: [{ text: '[Sistem] Önceki cevabın bozuk geldi. Son isteğe tekrar cevap ver; gerekiyorsa uygun aracı düzgün şekilde çağır.' }] }],
+        turnComplete: true
+      });
+    } catch { /* session closed */ }
   }
 
   flushUser() {

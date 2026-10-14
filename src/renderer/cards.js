@@ -76,7 +76,8 @@ const RENDER = {
   article: (d) => `<div class="article">
       ${d.image ? `<img src="${esc(d.image)}" alt="" loading="lazy">` : ''}
       <div><b>${esc(d.title)}</b>${d.subtitle ? `<small>${esc(d.subtitle)}</small>` : ''}<p>${esc(d.text || '')}</p>
-      ${d.url ? `<button class="text-btn" data-open="${esc(d.url)}">Kaynağı aç ${icon('external')}</button>` : ''}</div>
+      ${d.url ? `<button class="text-btn" data-open="${esc(d.url)}">Kaynağı aç ${icon('external')}</button>` : ''}
+      ${Array.isArray(d.sources) && d.sources.length ? `<div class="sources">${d.sources.map((x) => `<button class="src" data-open="${esc(x.url)}" title="${esc(x.url)}">${icon('globe')}${esc(x.title || x.url)}</button>`).join('')}</div>` : ''}</div>
     </div>`,
 
   file: (d) => `<div class="file-tile" data-reveal="${esc(d.path)}">
