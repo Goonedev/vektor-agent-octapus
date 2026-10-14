@@ -6,7 +6,37 @@
  */
 
 const fs = require('node:fs');
-const { ToolError, fetchWithTimeout, fetchJson, resolvePath, truncate } = require('./util');
+const { ToolError, isWin, winNative, psStr, fetchWithTimeout, fetchJson, resolvePath, truncate } = require('./util');
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/*
+ * After steam://install, Steam shows its own "Yükle / Install" dialog. The user already approved
+ * the install in Vektör, so we finish it: wait for that dialog, bring it forward and press Enter
+ * (its default button is Yükle). Windows only; elsewhere the user clicks it.
+ */
+async function confirmSteamInstallDialog(gameName) {
+  if (!isWin) return false;
+  const { listWindows, pressCombo } = require('./desktop');
+  const name = gameName.toLowerCase();
+  for (let i = 0; i < 20; i++) {
+    await sleep(1000);
+    let windows = [];
+    try { windows = await listWindows(); } catch { continue; }
+    const steamWins = windows.filter((w) => /steam/i.test(w.app));
+    // Older clients open a separate "Yükle"/"Install" window; the current one shows the dialog
+    // inside the main "Steam" window, so after a few seconds fall back to that.
+    const dialog = steamWins.find((w) => /^(yükle|install)\b/i.test(w.title) || w.title.toLowerCase().includes(name))
+      || (i >= 4 ? steamWins.find((w) => w.title.trim() === 'Steam') : null);
+    if (!dialog) continue;
+    const hit = (await winNative(`[Vektor.Windows]::Focus(${psStr(dialog.title)})`).catch(() => '')).trim();
+    if (!hit) continue;
+    await sleep(500);
+    await pressCombo('enter');
+    return true;
+  }
+  return false;
+}
 
 const decode = (s) => s.replace(/\\u0026/g, '&').replace(/\\"/g, '"').replace(/\\u0027/g, "'");
 
@@ -58,15 +88,19 @@ const tools = [
     name: 'steam_install',
     category: 'apps',
     title: 'Steam\'den oyun kur',
-    description: 'Bir oyunu Steam mağazasında bulur ve Steam istemcisinde kurulumunu başlatır. Ücretli oyunlarda Steam satın alma sayfasını açar.',
+    description: 'Bir oyunu Steam mağazasında bulur, Steam\'de kurulumu başlatır ve Steam\'in Yükle penceresini onaylayarak indirmeyi başlatır (Windows). Ücretli oyunlarda satın alma gerekir.',
     danger: true,
+    timeout: 60000,
     params: { game: { type: 'string', description: 'Oyunun adı.', required: true } },
     run: async (a, ctx) => {
       const g = await findSteamGame(a.game);
       await ctx.electron.shell.openExternal(`steam://install/${g.appid}`);
+      const confirmed = await confirmSteamInstallDialog(g.name);
       return {
-        summary: `${g.name} için Steam'de kurulum başlatıldı. Steam açık değilse önce açılır; ücretli oyunsa satın alma gerekir.`,
-        display: { type: 'article', title: g.name, subtitle: `Steam · kurulum başlatıldı (${g.appid})`, text: '', image: g.image, url: `https://store.steampowered.com/app/${g.appid}` },
+        summary: confirmed
+          ? `${g.name} Steam'de indirilmeye başladı.`
+          : `${g.name} için Steam'in kurulum penceresi açıldı; "Yükle"ye basman gerekiyor (ücretli oyunsa önce satın alma gerekir).`,
+        display: { type: 'article', title: g.name, subtitle: confirmed ? 'Steam · indiriliyor' : 'Steam · kurulum penceresi açık', text: '', image: g.image, url: `https://store.steampowered.com/app/${g.appid}` },
         data: { appid: g.appid, name: g.name }
       };
     }
