@@ -11,7 +11,9 @@ Vektör, bilgisayarında yaşayan sesli bir yapay zekâ asistanı. Konuşursun, 
 - **Sesli, canlı arayüz.** Ortadaki cam küre dinlerken maviye, seni duyarken turkuaza, düşünürken mora, araç çalıştırırken turuncuya döner; kenarı ve halkaları sesin şiddetiyle nefes alır. Konuşmanın yazılı dökümü altta akar.
 - **Canlı bileşenler.** Her araç çağrısı sağ panelde bir kart olarak açılır ve sonucuna göre şekil alır: hava durumu kartı, CPU/bellek halkaları, dosya listeleri, ekran görüntüsü önizlemesi, geri sayan zamanlayıcılar, klavye kısayolu tuşları, terminal çıktısı.
 - **Mini ada.** Ekranın en üstünde, Dynamic Island tarzı küçük bir çubuk. Her zaman üstte durur, Vektör'ün o anki durumunu, konuşmanın altyazısını ve çalışan aracı gösterir. Üzerine gelince mikrofon ve "aç" düğmeleri çıkar; geri kalan alana tıklamalar arkadaki pencerelere geçer.
-- **100 işlevsel araç.** Hepsi bilgisayarda gerçekten bir şey yapar; Windows, macOS ve Linux için ayrı ayrı uygulanmıştır. Tam liste aşağıda.
+- **104 işlevsel araç.** Hepsi bilgisayarda gerçekten bir şey yapar; Windows, macOS ve Linux için ayrı ayrı uygulanmıştır. Tam liste aşağıda.
+- **İşi sonuna kadar götürür.** "Şarkı aç" dersen YouTube'da bulup videoyu oynatır; "Steam'den X'i indir" dersen kurulumu başlatır; "şu projede şunu düzelt" dersen Claude Code'u o klasörde çalıştırıp sonucu özetler.
+- **Onay her yerde.** Riskli işlerde onay ana pencerede ve mini adada çıkar; ekranın üstünden "İzin ver / Reddet" dersin.
 - **Güvenlik.** Silme, kapatma, komut çalıştırma gibi riskli araçlar çalışmadan önce bir onay penceresi açılır (Enter = izin ver, Esc = reddet, 45 saniyede otomatik ret).
 - **Glassmorphism + Apple paleti.** Renkler, gri tonları, ikon çizgisi ve tipografi, "Cupertino Docs" tasarım sisteminden geliyor: Apple sistem renkleri, SF Pro, 20×20 ızgarada 1.5px çizgili ikonlar. Koyu ve açık tema.
 
@@ -86,7 +88,7 @@ src/
   main/                 Electron ana süreci
     main.js             pencereler, mini ada, tepsi, kısayol, onay akışı, IPC
     preload.js          arayüze açılan güvenli köprü (window.vektor)
-    tools/              100 araç — kategori başına bir dosya
+    tools/              104 araç — kategori başına bir dosya
       index.js          kayıt, Gemini şeması, çalıştırma, onay
       util.js           platform yardımcıları (PowerShell, AppleScript, xdotool...)
     native/             Windows yerel yardımcısı (C#)
@@ -94,6 +96,7 @@ src/
     scheduler.js        zamanlayıcı, alarm, hatırlatıcı
     smoke.js            uçtan uca duman testi
     updater.js          GitHub Releases üzerinden uygulama içi güncelleme
+    claudecode.js       Claude Code'u bir proje klasöründe tek seferlik çalıştırır
   renderer/             ana pencere
     live.js             Gemini Live oturumu: mikrofon akışı, ses, araç çağrıları
     audio.js            16 kHz PCM yakalama (AudioWorklet), 24 kHz kesintisiz oynatma
@@ -115,7 +118,7 @@ npm run dev       # geliştirici araçlarıyla başlatır
 
 Yeni bir araç eklemek için ilgili kategori dosyasına `{ name, category, title, description, params, run }` biçiminde bir nesne eklemen yeterli; Gemini şeması, araç kütüphanesi ve kartlar otomatik oluşur. Sonucun arayüzde nasıl görüneceğini `display.type` belirler (`stats`, `list`, `weather`, `image`, `timer`, `kv`, `value`...).
 
-## 100 araç
+## 104 araç
 
 *onaylı* işaretli araçlar çalışmadan önce izin ister.
 
@@ -134,7 +137,7 @@ Yeni bir araç eklemek için ilgili kategori dosyasına `{ name, category, title
 | `check_website` | Bir web sitesinin açık olup olmadığını ve yanıt süresini kontrol eder. |
 | `download_file` | Bir adresteki dosyayı İndirilenler klasörüne kaydeder. |
 
-### Uygulamalar (7)
+### Uygulamalar (9)
 
 | Araç | Ne yapar |
 | --- | --- |
@@ -145,6 +148,8 @@ Yeni bir araç eklemek için ilgili kategori dosyasına `{ name, category, title
 | `open_system_settings` | İşletim sisteminin ayarlar uygulamasını belirli bir bölümde açar. |
 | `open_terminal` | Belirtilen klasörde bir terminal penceresi açar. |
 | `open_task_manager` | Görev Yöneticisi / Etkinlik Monitörü'nü açar. |
+| `steam_install` · *onaylı* | Bir oyunu Steam mağazasında bulur ve Steam istemcisinde kurulumunu başlatır. Ücretli oyunlarda Steam satın alma sayfasını açar. |
+| `steam_launch` | Steam'de kurulu bir oyunu adıyla başlatır. |
 
 ### Dosyalar (16)
 
@@ -198,7 +203,7 @@ Yeni bir araç eklemek için ilgili kategori dosyasına `{ name, category, title
 | `set_dark_mode` | İşletim sisteminin karanlık / aydınlık temasını değiştirir. |
 | `set_wallpaper` | Masaüstü duvar kağıdını bir resim dosyasıyla değiştirir. |
 
-### Medya (6)
+### Medya (7)
 
 | Araç | Ne yapar |
 | --- | --- |
@@ -208,6 +213,7 @@ Yeni bir araç eklemek için ilgili kategori dosyasına `{ name, category, title
 | `take_screenshot` | Ekran görüntüsü alır ve Resimler/Vektör klasörüne kaydeder. Kullanıcı "ekranımda ne var", "şuna bak" derse look=true ver; görüntü sana gönderilir ve yorumlayabilirsin. |
 | `screenshot_to_clipboard` | Ekran görüntüsü alıp doğrudan panoya kopyalar, yapıştırmaya hazır. |
 | `open_camera` | Kamera uygulamasını açar. |
+| `play_youtube` | Bir şarkıyı ya da videoyu YouTube'da bulur ve doğrudan oynatır (arama sayfasında bırakmaz). "Şarkı aç", "şu videoyu aç", "biraz müzik çal" gibi isteklerde bunu kullan. |
 
 ### Pano (4)
 
@@ -276,13 +282,14 @@ Yeni bir araç eklemek için ilgili kategori dosyasına `{ name, category, title
 | `dns_lookup` | Bir alan adının IP adreslerini ve kayıtlarını sorgular. |
 | `check_port` | Bir sunucuda TCP portunun açık olup olmadığını kontrol eder (ör. localhost 3000). |
 
-### Geliştirici (3)
+### Geliştirici (4)
 
 | Araç | Ne yapar |
 | --- | --- |
 | `run_command` · *onaylı* | Terminal komutu çalıştırır ve çıktısını döndürür (Windows'ta PowerShell, diğerlerinde sh). Başka araç işi görmüyorsa kullan; her çalıştırma kullanıcı onayı ister. |
 | `git_status` | Bir proje klasörünün git dalını, değişen dosyalarını ve son commitlerini gösterir. |
 | `open_in_vscode` | Bir dosya ya da klasörü Visual Studio Code'da açar. |
+| `ask_claude_code` · *onaylı* | Kullanıcı bir projede kod işi istediğinde Claude Code'u o proje klasöründe bir kez çalıştırır (kod yazma, analiz, hata düzeltme). Claude yalnızca o klasördeki dosyaları düzenler. "Devam et" denirse continue=true ile aynı oturumdan sürdür. Cevabı kullanıcıya kısaca özetle. |
 
 ## Lisans
 

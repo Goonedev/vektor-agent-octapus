@@ -25,7 +25,8 @@ const TOOLS = [
   ...require('./system'),
   ...require('./desktop'),
   ...require('./productivity'),
-  ...require('./utility')
+  ...require('./utility'),
+  ...require('./actions')
 ];
 
 const BY_NAME = new Map(TOOLS.map((t) => [t.name, t]));
@@ -48,7 +49,8 @@ const ICONS = {
   add_todo: 'checkbox', list_todos: 'checkbox-on', complete_todo: 'checkbox-on',
   convert_units: 'arrows', convert_currency: 'currency', get_weather: 'cloud-sun', get_news: 'newspaper', world_clock: 'globe',
   generate_password: 'key', random_pick: 'dice', ping_host: 'activity', dns_lookup: 'globe', check_port: 'plug',
-  git_status: 'code', open_in_vscode: 'code'
+  git_status: 'code', open_in_vscode: 'code',
+  play_youtube: 'play', steam_install: 'arrows', steam_launch: 'play', ask_claude_code: 'sparkles'
 };
 
 /* ------------------------------------------------------------ schema */

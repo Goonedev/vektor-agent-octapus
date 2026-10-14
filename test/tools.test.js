@@ -16,10 +16,10 @@ const { parseCombo } = require('../src/main/tools/desktop');
 const { Store } = require('../src/main/store');
 const { Scheduler } = require('../src/main/scheduler');
 
-test('the registry has exactly 100 uniquely named tools in known categories', () => {
-  assert.equal(tools.TOOLS.length, 100);
+test('the registry has at least 100 uniquely named tools in known categories', () => {
+  assert.ok(tools.TOOLS.length >= 100);
   const names = new Set(tools.TOOLS.map((t) => t.name));
-  assert.equal(names.size, 100);
+  assert.equal(names.size, tools.TOOLS.length);
   const cats = new Set(tools.CATEGORIES.map((c) => c.id));
   for (const t of tools.TOOLS) {
     assert.ok(cats.has(t.category), `${t.name} has unknown category ${t.category}`);
@@ -166,4 +166,20 @@ test('store and scheduler persist alarms and fire due items', async () => {
   assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).schedule[0].id, alarm.id);
   assert.equal(sched.remove(alarm.id), true);
   fs.rmSync(dir, { recursive: true });
+});
+
+test('YouTube results parse to the first real video', () => {
+  const { parseYouTube } = require('../src/main/tools/actions');
+  const html = '..."adSlotRenderer":{}..."videoRenderer":{"videoId":"dQw4w9WgXcQ","thumbnail":{},"title":{"runs":[{"text":"Rick Astley \\u0026 Friends"}]}}...';
+  assert.deepEqual(parseYouTube(html, 'x'), { id: 'dQw4w9WgXcQ', title: 'Rick Astley & Friends' });
+  assert.equal(parseYouTube('"videoId":"abcdefghijk"', 'q').id, 'abcdefghijk');
+  assert.throws(() => parseYouTube('<html></html>', 'q'));
+});
+
+test('install and Claude Code tools ask before running', async () => {
+  let asked = 0;
+  const deny = { confirm: async () => { asked++; return false; } };
+  assert.equal((await tools.execute('steam_install', { game: 'x' }, deny)).denied, true);
+  assert.equal((await tools.execute('ask_claude_code', { prompt: 'x', project_path: '~' }, deny)).denied, true);
+  assert.equal(asked, 2);
 });
