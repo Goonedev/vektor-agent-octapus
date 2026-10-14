@@ -6,36 +6,56 @@
  */
 
 const fs = require('node:fs');
-const { ToolError, isWin, winNative, psStr, fetchWithTimeout, fetchJson, resolvePath, truncate } = require('./util');
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const { ToolError, isWin, ps, psStr, fetchWithTimeout, fetchJson, resolvePath, truncate } = require('./util');
 
 /*
- * After steam://install, Steam shows its own "Yükle / Install" dialog. The user already approved
- * the install in Vektör, so we finish it: wait for that dialog, bring it forward and press Enter
- * (its default button is Yükle). Windows only; elsewhere the user clicks it.
+ * After steam://install, Steam shows its own "Yükle / Install" dialog — on current clients a
+ * SEPARATE top-level window titled "Yükle". The user already approved the install in Vektör, so
+ * we finish it with the accessibility layer (UI Automation), which can see owned dialog windows
+ * that a plain window list drops, and invoke the real button by its name. Windows only.
  */
+function steamConfirmScript(gameName) {
+  return `
+$ErrorActionPreference='SilentlyContinue'
+Add-Type -AssemblyName UIAutomationClient,UIAutomationTypes,WindowsBase
+$AE=[System.Windows.Automation.AutomationElement]
+$CT=[System.Windows.Automation.ControlType]
+$game=${psStr((gameName || '').toLowerCase())}
+$winWords=@('yükle','install','kur','yukle')
+$btnWords=@('yükle','install','kur','yukle','indir','evet','devam','next','ileri')
+$deadline=(Get-Date).AddSeconds(28)
+while((Get-Date) -lt $deadline){
+  Start-Sleep -Milliseconds 700
+  $wins=$AE::RootElement.FindAll('Children',[System.Windows.Automation.Condition]::TrueCondition)
+  foreach($w in $wins){
+    $wn=$w.Current.Name; if(-not $wn){continue}
+    $wnl=$wn.ToLower()
+    $match=($game -and $wnl.Contains($game))
+    foreach($x in $winWords){ if($wnl.Contains($x)){ $match=$true } }
+    if(-not $match){continue}
+    $cond=New-Object System.Windows.Automation.PropertyCondition($AE::ControlTypeProperty,$CT::Button)
+    foreach($b in $w.FindAll('Descendants',$cond)){
+      $bn=$b.Current.Name; if(-not $bn){continue}
+      $bnl=$bn.ToLower()
+      $hit=$false; foreach($x in $btnWords){ if($bnl -eq $x -or $bnl.StartsWith($x)){ $hit=$true } }
+      if(-not $hit){continue}
+      $p=$null
+      if($b.TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern,[ref]$p)){ $p.Invoke(); 'OK:'+$bn; exit }
+    }
+  }
+}
+'TIMEOUT'
+`;
+}
+
 async function confirmSteamInstallDialog(gameName) {
   if (!isWin) return false;
-  const { listWindows, pressCombo } = require('./desktop');
-  const name = gameName.toLowerCase();
-  for (let i = 0; i < 20; i++) {
-    await sleep(1000);
-    let windows = [];
-    try { windows = await listWindows(); } catch { continue; }
-    const steamWins = windows.filter((w) => /steam/i.test(w.app));
-    // Older clients open a separate "Yükle"/"Install" window; the current one shows the dialog
-    // inside the main "Steam" window, so after a few seconds fall back to that.
-    const dialog = steamWins.find((w) => /^(yükle|install)\b/i.test(w.title) || w.title.toLowerCase().includes(name))
-      || (i >= 4 ? steamWins.find((w) => w.title.trim() === 'Steam') : null);
-    if (!dialog) continue;
-    const hit = (await winNative(`[Vektor.Windows]::Focus(${psStr(dialog.title)})`).catch(() => '')).trim();
-    if (!hit) continue;
-    await sleep(500);
-    await pressCombo('enter');
-    return true;
+  try {
+    const out = (await ps(steamConfirmScript(gameName), { timeout: 32000 })).trim().split('\n').pop();
+    return out.startsWith('OK:');
+  } catch {
+    return false;
   }
-  return false;
 }
 
 const decode = (s) => s.replace(/\\u0026/g, '&').replace(/\\"/g, '"').replace(/\\u0027/g, "'");
