@@ -1,0 +1,59 @@
+/* The mini island: a Dynamic Island–style bar pinned to the top of the screen. */
+
+:root {
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --spring: cubic-bezier(.32, .72, 0, 1);
+  --tone: #0a84ff;
+}
+
+html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; font-family: var(--font); -webkit-font-smoothing: antialiased; user-select: none; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+
+.island {
+  position: absolute; left: 50%; top: 4px; transform: translateX(-50%);
+  width: 196px; height: 38px; border-radius: 22px;
+  background: rgba(0, 0, 0, .9);
+  border: 1px solid rgba(255, 255, 255, .08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .35), 0 1px 0 rgba(255, 255, 255, .06) inset;
+  color: #f5f5f7; overflow: hidden;
+  transition: width .55s var(--spring), height .55s var(--spring), border-radius .55s var(--spring), box-shadow .4s ease;
+}
+.island::after { /* coloured breath along the bottom edge */
+  content: ''; position: absolute; left: 18%; right: 18%; bottom: -1px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--tone), transparent); opacity: 0; transition: opacity .4s ease;
+}
+.island.expanded { width: 420px; height: 64px; border-radius: 30px; }
+.island.expanded.has-caption { height: 104px; }
+.island.expanded::after { opacity: .9; }
+.island[data-phase="offline"] { width: 150px; }
+.island[data-phase="offline"].expanded { width: 300px; }
+
+.row { display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 8px 0 7px; transition: height .55s var(--spring), padding .55s var(--spring); }
+.island.expanded .row { height: 64px; padding: 0 14px 0 12px; gap: 12px; }
+
+.orb-btn { width: 26px; height: 26px; flex: none; border-radius: 50%; transition: width .55s var(--spring), height .55s var(--spring); }
+.island.expanded .orb-btn { width: 40px; height: 40px; }
+.orb-btn canvas { width: 100%; height: 100%; display: block; }
+
+.text { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+.label { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: font-size .4s var(--spring); }
+.island.expanded .label { font-size: 15px; }
+.sub { font-size: 11.5px; color: #a1a1a6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-height: 0; opacity: 0; transition: opacity .3s ease, max-height .4s var(--spring); }
+.island.expanded .sub:not(:empty) { max-height: 16px; opacity: 1; }
+
+.bars { display: flex; align-items: center; gap: 2.5px; height: 18px; flex: none; }
+.bars i { width: 3px; height: 4px; border-radius: 2px; background: var(--tone); transition: height .08s linear, background .4s ease; }
+.island[data-phase="offline"] .bars, .island[data-phase="idle"] .bars { opacity: .35; }
+
+.actions { display: flex; gap: 4px; width: 0; overflow: hidden; opacity: 0; transition: width .45s var(--spring), opacity .25s ease; flex: none; }
+.island.hover .actions { width: 68px; opacity: 1; }
+.act { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: rgba(118, 118, 128, .24); color: #f5f5f7; transition: background .15s ease; }
+.act:hover { background: rgba(118, 118, 128, .4); }
+.act.on { background: #0071e3; }
+.act svg { width: 16px; height: 16px; }
+
+.caption {
+  margin: 0; padding: 0 18px; font-size: 12.5px; line-height: 1.35; color: #d1d1d6; height: 0; opacity: 0; overflow: hidden;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; transition: opacity .3s ease;
+}
+.island.expanded.has-caption .caption { height: 36px; opacity: 1; }

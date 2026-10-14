@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="tr" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' data:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: file:; connect-src 'self' https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com; media-src 'self' blob:; worker-src 'self' data:; font-src 'self' data:">
+  <title>Vektör</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="aurora" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="titlebar">
+    <div class="brand">
+      <span class="brand-mark"><canvas id="brand-orb"></canvas></span>
+      <span class="brand-name">Vektör</span>
+    </div>
+    <button class="conn-pill" id="conn-pill" data-phase="offline">
+      <span class="conn-dot"></span>
+      <span id="conn-label">Çevrimdışı</span>
+      <span class="conn-model" id="conn-model"></span>
+    </button>
+    <div class="win-controls" id="win-controls">
+      <button data-win="minimize" aria-label="Küçült"><svg viewBox="0 0 12 12"><path d="M2 6h8"/></svg></button>
+      <button data-win="maximize" aria-label="Büyüt"><svg viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" rx="1.5"/></svg></button>
+      <button data-win="close" aria-label="Kapat"><svg viewBox="0 0 12 12"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg></button>
+    </div>
+  </header>
+
+  <nav class="rail glass" id="rail">
+    <button data-view="assistant" class="active" title="Asistan"><span data-icon="sparkles"></span><small>Asistan</small></button>
+    <button data-view="tools" title="Araçlar"><span data-icon="grid"></span><small>Araçlar</small></button>
+    <button data-view="activity" title="Etkinlik"><span data-icon="activity"></span><small>Etkinlik</small></button>
+    <button data-view="notes" title="Notlar"><span data-icon="note"></span><small>Notlar</small></button>
+    <span class="rail-spacer"></span>
+    <button data-view="settings" title="Ayarlar"><span data-icon="gear"></span><small>Ayarlar</small><i class="badge-dot" id="update-dot" hidden></i></button>
+  </nav>
+
+  <main class="stage">
+    <!-- Assistant -->
+    <section class="view active" data-view="assistant">
+      <div class="hero">
+        <div class="orb-wrap" id="orb-wrap">
+          <canvas id="orb"></canvas>
+          <button class="orb-hit" id="orb-hit" aria-label="Dinlemeyi başlat ya da durdur"></button>
+        </div>
+        <p class="phase-line" id="phase-line">Başlamak için küreye dokun</p>
+        <p class="caption" id="caption" aria-live="polite"></p>
+      </div>
+
+      <div class="convo" id="convo">
+        <div class="suggestions" id="suggestions"></div>
+      </div>
+
+      <form class="composer glass" id="composer" autocomplete="off">
+        <button type="button" class="mic-btn" id="mic-btn" aria-label="Mikrofon"><span data-icon="mic"></span></button>
+        <input id="composer-input" placeholder="Vektör'e yaz ya da konuş…" aria-label="Mesaj">
+        <kbd class="hint-kbd" id="shortcut-hint"></kbd>
+        <button type="submit" class="send-btn" aria-label="Gönder"><span data-icon="send"></span></button>
+        <button type="button" class="ghost-btn" id="power-btn" title="Bağlan / bağlantıyı kes"><span data-icon="power"></span></button>
+      </form>
+    </section>
+
+    <!-- Tool library -->
+    <section class="view" data-view="tools">
+      <div class="view-head">
+        <div>
+          <h1>Araçlar</h1>
+          <p class="lead" id="tools-lead">Vektör'ün bilgisayarında yapabildiği her şey. Bir araca dokunup elle de çalıştırabilirsin.</p>
+        </div>
+        <label class="search glass"><span data-icon="search"></span><input id="tool-search" placeholder="Araç ara…"></label>
+      </div>
+      <div class="chips" id="tool-cats"></div>
+      <div class="tool-grid" id="tool-grid"></div>
+    </section>
+
+    <!-- Activity -->
+    <section class="view" data-view="activity">
+      <div class="view-head">
+        <div>
+          <h1>Etkinlik</h1>
+          <p class="lead">Bu oturumda çalışan her araç, ne kadar sürdüğü ve sonucu.</p>
+        </div>
+        <button class="btn secondary" id="activity-clear">Temizle</button>
+      </div>
+      <div class="activity glass" id="activity"></div>
+    </section>
+
+    <!-- Notes, todos, timers -->
+    <section class="view" data-view="notes">
+      <div class="view-head">
+        <div>
+          <h1>Notlar ve görevler</h1>
+          <p class="lead">Vektör'e söylediğin notlar, yapılacaklar ve kurulu zamanlayıcılar.</p>
+        </div>
+      </div>
+      <div class="notes-grid">
+        <div class="panel glass">
+          <h2>Notlar</h2>
+          <form class="inline-add" id="note-form"><input id="note-input" placeholder="Yeni not…"><button class="btn primary sm">Ekle</button></form>
+          <div class="note-list" id="note-list"></div>
+        </div>
+        <div class="panel glass">
+          <h2>Yapılacaklar</h2>
+          <form class="inline-add" id="todo-form"><input id="todo-input" placeholder="Yeni görev…"><button class="btn primary sm">Ekle</button></form>
+          <ul class="todo-list big" id="todo-list"></ul>
+          <h2 class="mt">Zamanlayıcılar</h2>
+          <ul class="rows" id="timer-list"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Settings -->
+    <section class="view" data-view="settings">
+      <div class="view-head">
+        <div>
+          <h1>Ayarlar</h1>
+          <p class="lead">Gemini bağlantısı, ses ve davranış.</p>
+        </div>
+      </div>
+      <form class="settings" id="settings-form">
+        <div class="panel glass">
+          <h2>Gemini</h2>
+          <label class="field">
+            <span>API anahtarı</span>
+            <div class="field-row">
+              <input type="password" name="apiKey" placeholder="AIza…" spellcheck="false">
+              <button type="button" class="btn secondary sm" id="key-toggle">Göster</button>
+            </div>
+            <small>Anahtar yalnızca bu bilgisayarda saklanır. <a href="#" data-open="https://aistudio.google.com/apikey">Google AI Studio'dan ücretsiz al</a>.</small>
+          </label>
+          <label class="field">
+            <span>Model</span>
+            <select name="model" id="model-select"></select>
+            <input name="modelCustom" placeholder="ya da model kimliğini yaz" spellcheck="false">
+          </label>
+          <label class="field">
+            <span>Ses</span>
+            <select name="voice" id="voice-select"></select>
+          </label>
+          <label class="field">
+            <span>Kişilik ve talimatlar</span>
+            <textarea name="persona" rows="3" placeholder="Örn. Bana adımla, Kadir diye hitap et. Esprili ol ama kısa konuş."></textarea>
+          </label>
+        </div>
+        <div class="panel glass">
+          <h2>Davranış</h2>
+          <label class="toggle"><input type="checkbox" name="miniIsland"><span class="switch"></span><span><b>Mini ada</b><small>Ekranın üstünde, durumu ve aktif aracı gösteren canlı çubuk.</small></span></label>
+          <label class="toggle"><input type="checkbox" name="confirmDanger"><span class="switch"></span><span><b>Riskli işlemlerde onay iste</b><small>Silme, kapatma ve komut çalıştırma öncesi onay penceresi.</small></span></label>
+          <label class="toggle"><input type="checkbox" name="autoConnect"><span class="switch"></span><span><b>Açılışta bağlan</b><small>Vektör açılınca Gemini'ye bağlanıp dinlemeye başlar.</small></span></label>
+          <label class="toggle"><input type="checkbox" name="chime"><span class="switch"></span><span><b>Bildirim sesleri</b><small>Bağlanma, zamanlayıcı ve alarm sesleri.</small></span></label>
+          <label class="field">
+            <span>Tema</span>
+            <div class="segmented" id="theme-seg">
+              <label><input type="radio" name="theme" value="dark"><span>Koyu</span></label>
+              <label><input type="radio" name="theme" value="light"><span>Açık</span></label>
+              <label><input type="radio" name="theme" value="system"><span>Sistem</span></label>
+            </div>
+          </label>
+          <label class="field">
+            <span>Dinleme kısayolu</span>
+            <input name="shortcut" spellcheck="false">
+            <small>Her yerden dinlemeyi aç/kapat. Örn. CommandOrControl+Shift+Space</small>
+          </label>
+        </div>
+        <div class="panel glass update-panel">
+          <h2>Güncellemeler</h2>
+          <div class="update-row">
+            <span class="card-icon" data-icon="sparkles"></span>
+            <div class="row-main"><b id="update-title">Vektör</b><small id="update-msg">Güncelleme durumu yükleniyor…</small></div>
+            <button type="button" class="btn secondary sm" id="update-check">Güncellemeleri denetle</button>
+            <button type="button" class="btn primary sm" id="update-install" hidden>Yeniden başlat ve güncelle</button>
+          </div>
+          <div class="update-bar" id="update-bar-wrap" hidden><i id="update-bar"></i></div>
+        </div>
+        <div class="settings-foot">
+          <span class="saved" id="settings-saved">Kaydedildi</span>
+          <button class="btn primary" type="submit">Kaydet</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <aside class="live glass" id="live">
+    <header class="live-head">
+      <div><h2>Canlı</h2><small id="live-count">Henüz araç çalışmadı</small></div>
+      <button class="icon-btn" id="live-clear" title="Temizle"><span data-icon="trash"></span></button>
+    </header>
+    <div class="timers-strip" id="timers-strip"></div>
+    <div class="live-feed" id="live-feed">
+      <div class="live-empty" id="live-empty">
+        <span data-icon="layers"></span>
+        <p>Vektör bir şey yaptığında burada canlı bir kart belirir: hava durumu, dosyalar, sistem göstergeleri, ekran görüntüleri…</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Tool runner sheet -->
+  <div class="scrim" id="runner" hidden>
+    <form class="sheet glass" id="runner-form">
+      <header><span class="card-icon" id="runner-icon"></span><div><h3 id="runner-title"></h3><p id="runner-desc"></p></div></header>
+      <div class="runner-fields" id="runner-fields"></div>
+      <footer><button type="button" class="btn secondary" data-close>Vazgeç</button><button class="btn primary" type="submit">Çalıştır</button></footer>
+    </form>
+  </div>
+
+  <!-- Confirmation -->
+  <div class="scrim" id="confirm" hidden>
+    <div class="sheet glass confirm" role="alertdialog" aria-labelledby="confirm-title">
+      <header><span class="card-icon warn" data-icon="shield"></span><div><small>Vektör izin istiyor</small><h3 id="confirm-title"></h3><p id="confirm-desc"></p></div></header>
+      <div id="confirm-args"></div>
+      <div class="confirm-timer"><i id="confirm-bar"></i></div>
+      <footer><button class="btn secondary" id="confirm-no">Reddet <kbd>Esc</kbd></button><button class="btn primary" id="confirm-yes">İzin ver <kbd>↵</kbd></button></footer>
+    </div>
+  </div>
+
+  <div class="toasts" id="toasts"></div>
+
+  <script src="../../dist/renderer.js"></script>
+</body>
+</html>

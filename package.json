@@ -1,0 +1,102 @@
+{
+  "name": "vektor",
+  "productName": "Vektör",
+  "version": "0.1.0",
+  "description": "Vektör — Gemini Live ile çalışan, bilgisayarını yöneten sesli masaüstü ajanı",
+  "main": "src/main/main.js",
+  "private": true,
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "npm run build && electron .",
+    "dev": "npm run build && electron . --dev",
+    "smoke": "npm run build && VEKTOR_SMOKE=./out/smoke electron .",
+    "test": "node --test test/*.test.js",
+    "dist": "npm run build && electron-builder --publish never",
+    "dist:win": "npm run build && electron-builder --win --publish never",
+    "dist:mac": "npm run build && electron-builder --mac --publish never",
+    "dist:linux": "npm run build && electron-builder --linux --publish never",
+    "release:win": "npm run build && electron-builder --win --publish always"
+  },
+  "dependencies": {
+    "@google/genai": "2.24.0",
+    "electron-updater": "6.8.9"
+  },
+  "devDependencies": {
+    "electron": "44.4.5",
+    "electron-builder": "^26.16.1",
+    "esbuild": "0.28.2"
+  },
+  "author": {
+    "name": "Kadir"
+  },
+  "homepage": "https://github.com/goonedev/vektor-agent-octapus",
+  "build": {
+    "appId": "com.vektor.assistant",
+    "productName": "Vektör",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**/*",
+      "dist/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "src/main/native/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.png",
+      "artifactName": "Vektor-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Vektör",
+      "uninstallDisplayName": "Vektör",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "assets/icon.png",
+      "category": "public.app-category.productivity",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Vektör seni duyabilmek için mikrofona erişir.",
+        "NSAppleEventsUsageDescription": "Vektör uygulamaları ve sistemi senin isteğinle yönetir."
+      },
+      "artifactName": "Vektor-${version}-${arch}.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "assets/icon.png",
+      "category": "Utility",
+      "artifactName": "Vektor-${version}.${ext}"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Goonedev",
+        "repo": "vektor-agent-octapus",
+        "releaseType": "release"
+      }
+    ]
+  }
+}
