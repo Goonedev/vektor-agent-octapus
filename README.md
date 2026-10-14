@@ -46,12 +46,10 @@ Kurulum dosyasıyla kurulan Vektör, açılışta ve dört saatte bir GitHub Rel
 
 ### Yeni sürüm yayınlamak
 
-```bash
-npm version patch        # 0.1.0 → 0.1.1 (package.json'ı günceller, commit ve v0.1.1 etiketi oluşturur)
-git push --follow-tags   # etiketi GitHub'a gönderir
-```
+1. `package.json` içindeki `"version"` alanını artır (ör. `0.1.0` → `0.1.1`). Bunun için `npm version patch --no-git-tag-version` de kullanabilirsin.
+2. Değişikliği `main` dalına gönder (doğrudan push ya da pull request birleştirme).
 
-Etiket gidince `.github/workflows/release.yml` Windows sunucusunda testleri çalıştırır, kurulum dosyasını derler ve aynı adla bir GitHub Release yayınlar. Kurulu tüm Vektör'ler birkaç saat içinde (ya da "Güncellemeleri denetle" ile hemen) yeni sürüme geçer. Etiket ile `package.json` sürümü uyuşmazsa yayın durur.
+`main`'e gelen her push'ta `.github/workflows/release.yml` çalışır. O sürüm için henüz bir Release yoksa testleri koşar, Windows sunucusunda kurulum dosyasını derler ve `v0.1.1` adıyla bir GitHub Release yayınlar. Sürüm değişmediyse hiçbir şey yayınlamaz. Kurulu tüm Vektör'ler birkaç saat içinde, ya da "Güncellemeleri denetle" ile hemen, yeni sürüme geçer. İstersen `v0.1.1` gibi bir etiket göndererek de yayın başlatabilirsin.
 
 Yerelde kurulum dosyası üretmek istersen (yayınlamadan):
 

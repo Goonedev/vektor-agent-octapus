@@ -1,41 +1,60 @@
-# Builds the Windows installer and publishes it to GitHub Releases whenever a version tag
-# (v0.2.0, v0.2.1, ...) is pushed. Installed copies of Vektör pick the release up and
-# update themselves.
+# Builds the Windows installer and publishes it to GitHub Releases.
+#
+# Runs on every push to main: if no release exists yet for the version in package.json,
+# it builds Vektor-Setup-<version>.exe and publishes release v<version>. Installed copies of
+# Vektör pick the release up and update themselves. Pushing a v* tag works too.
 name: Release
 
 on:
   push:
+    branches: [main]
     tags: ['v*']
   workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   windows:
     runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
+      - name: Decide whether this version needs a release
+        id: plan
+        shell: bash
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF" == refs/tags/v* && "v$version" != "$GITHUB_REF_NAME" ]]; then
+            echo "Tag $GITHUB_REF_NAME does not match package.json version $version" >&2
+            exit 1
+          fi
+          if gh release view "v$version" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release v$version already exists; bump the version in package.json to publish a new one."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/setup-node@v4
+        if: steps.plan.outputs.publish == 'true'
         with:
           node-version: 22
           cache: npm
 
-      - name: Check that the tag matches package.json
-        if: startsWith(github.ref, 'refs/tags/v')
-        shell: bash
-        run: |
-          version="$(node -p "require('./package.json').version")"
-          if [ "v$version" != "${GITHUB_REF_NAME}" ]; then
-            echo "Tag ${GITHUB_REF_NAME} does not match package.json version $version" >&2
-            exit 1
-          fi
+      - if: steps.plan.outputs.publish == 'true'
+        run: npm ci
 
-      - run: npm ci
-      - run: npm test
+      - if: steps.plan.outputs.publish == 'true'
+        run: npm test
 
       - name: Build and publish the installer
+        if: steps.plan.outputs.publish == 'true'
         run: npm run release:win
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
