@@ -212,7 +212,9 @@ namespace Vektor
             var result = new List<Entry>();
             EnumWindows((h, l) =>
             {
-                if (!IsWindowVisible(h) || GetWindow(h, 4) != IntPtr.Zero) return true;
+                // Owned windows (GW_OWNER != 0) are kept: a modal dialog like Steam's "Yükle"
+                // is owned by its main window, and we want to see and act on it.
+                if (!IsWindowVisible(h)) return true;
                 int len = GetWindowTextLength(h);
                 if (len == 0) return true;
                 var sb = new StringBuilder(len + 1);
