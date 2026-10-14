@@ -1,0 +1,77 @@
+{
+  "name": "vektor",
+  "productName": "Vektör",
+  "version": "0.1.0",
+  "description": "Vektör — Gemini Live ile çalışan, bilgisayarını yöneten sesli masaüstü ajanı",
+  "main": "src/main/main.js",
+  "private": true,
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "npm run build && electron .",
+    "dev": "npm run build && electron . --dev",
+    "smoke": "npm run build && VEKTOR_SMOKE=./out/smoke electron .",
+    "test": "node --test test/*.test.js",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux"
+  },
+  "dependencies": {
+    "@google/genai": "2.24.0"
+  },
+  "devDependencies": {
+    "electron": "44.4.5",
+    "electron-builder": "^26.16.1",
+    "esbuild": "0.28.2"
+  },
+  "author": {
+    "name": "Kadir"
+  },
+  "homepage": "https://github.com/goonedev/vektor-agent-octapus",
+  "build": {
+    "appId": "com.vektor.assistant",
+    "productName": "Vektör",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**/*",
+      "dist/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "src/main/native/**"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Vektör"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "assets/icon.png",
+      "category": "public.app-category.productivity",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Vektör seni duyabilmek için mikrofona erişir.",
+        "NSAppleEventsUsageDescription": "Vektör uygulamaları ve sistemi senin isteğinle yönetir."
+      }
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "assets/icon.png",
+      "category": "Utility"
+    }
+  }
+}

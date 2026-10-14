@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+  <title>Vektör Ada</title>
+  <link rel="stylesheet" href="mini.css">
+</head>
+<body>
+  <div class="island" id="island" data-phase="offline">
+    <div class="row">
+      <button class="orb-btn" id="orb-btn" aria-label="Dinle / durdur"><canvas id="orb"></canvas></button>
+      <div class="text">
+        <span class="label" id="label">Vektör</span>
+        <span class="sub" id="sub"></span>
+      </div>
+      <div class="bars" id="bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="actions">
+        <button class="act" id="mic" aria-label="Mikrofon"></button>
+        <button class="act" id="open" aria-label="Vektör'ü aç"></button>
+      </div>
+    </div>
+    <p class="caption" id="caption"></p>
+  </div>
+  <script src="../../dist/mini.js"></script>
+</body>
+</html>
