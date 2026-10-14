@@ -2,6 +2,8 @@
 
 Vektör, bilgisayarında yaşayan sesli bir yapay zekâ asistanı. Konuşursun, **Gemini Live** seni gerçek zamanlı duyar, cevabını sesli verir ve bilgisayarını gerçekten yönetir: uygulama açar, dosya düzenler, sesi kısar, ekranına bakar, zamanlayıcı kurar, hava durumunu getirir. Yaptığı her iş, arayüzde canlı bir bileşen olarak belirir.
 
+**İndir:** [goonedev.github.io/vektor-agent-octapus](https://goonedev.github.io/vektor-agent-octapus/)
+
 ![Vektör asistan ekranı](docs/asistan.png)
 
 ## Neler var
@@ -38,7 +40,7 @@ Kullanmak için ortadaki küreye dokun ya da her yerden **Ctrl+Shift+Space** (ma
 
 ### Hazır kurulum dosyası (Windows)
 
-Node.js'e gerek yok: [Releases](https://github.com/Goonedev/vektor-agent-octapus/releases/latest) sayfasından **`Vektor-Setup-x.y.z.exe`** dosyasını indirip çalıştır. Kurulum, masaüstüne ve Başlat menüsüne kısayol ekler. Kod imzalı olmadığı için Windows "bilgisayarınızı korudu" uyarısı verebilir; **Ek bilgi › Yine de çalıştır** ile devam et.
+Node.js'e gerek yok: [indirme sitesinden](https://goonedev.github.io/vektor-agent-octapus/) ya da [Releases](https://github.com/Goonedev/vektor-agent-octapus/releases/latest) sayfasından **`Vektor-Setup-x.y.z.exe`** dosyasını indirip çalıştır. Kurulum, masaüstüne ve Başlat menüsüne kısayol ekler. Kod imzalı olmadığı için Windows "bilgisayarınızı korudu" uyarısı verebilir; **Ek bilgi › Yine de çalıştır** ile devam et.
 
 ### Uygulama içi güncelleme
 
@@ -50,6 +52,12 @@ Kurulum dosyasıyla kurulan Vektör, açılışta ve dört saatte bir GitHub Rel
 2. Değişikliği `main` dalına gönder (doğrudan push ya da pull request birleştirme).
 
 `main`'e gelen her push'ta `.github/workflows/release.yml` çalışır. O sürüm için henüz bir Release yoksa testleri koşar, Windows sunucusunda kurulum dosyasını derler ve `v0.1.1` adıyla bir GitHub Release yayınlar. Sürüm değişmediyse hiçbir şey yayınlamaz. Kurulu tüm Vektör'ler birkaç saat içinde, ya da "Güncellemeleri denetle" ile hemen, yeni sürüme geçer. İstersen `v0.1.1` gibi bir etiket göndererek de yayın başlatabilirsin.
+
+### İndirme sitesi
+
+`site/` klasörü, [goonedev.github.io/vektor-agent-octapus](https://goonedev.github.io/vektor-agent-octapus/) adresindeki indirme sayfasıdır. Sayfa en son sürümü GitHub'dan canlı okur; yeni sürüm çıktığında "Windows için indir" düğmesi kendiliğinden yeni kurulum dosyasını gösterir. `site/` ya da ekran görüntüleri değişip `main`'e gönderildiğinde `.github/workflows/pages.yml` siteyi yeniden yayınlar.
+
+İlk kez açmak için bir kerelik: repo **Settings › Pages › Build and deployment › Source** alanını **GitHub Actions** yap.
 
 Yerelde kurulum dosyası üretmek istersen (yayınlamadan):
 

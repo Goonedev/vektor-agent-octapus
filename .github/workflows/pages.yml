@@ -1,0 +1,39 @@
+# Publishes the download site in site/ to GitHub Pages
+# (https://goonedev.github.io/vektor-agent-octapus/). The page reads releases from the
+# GitHub API at view time, so it never needs a rebuild for a new version.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    paths: ['site/**', 'docs/**', 'assets/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble the site
+        run: |
+          mkdir -p _site/img
+          cp site/* _site/
+          cp docs/*.png assets/icon-256.png _site/img/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
