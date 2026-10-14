@@ -37,9 +37,16 @@ jobs:
             exit 1
           fi
           draft="$(gh release view "v$version" --repo "$GITHUB_REPOSITORY" --json isDraft -q .isDraft 2>/dev/null || echo missing)"
-          if [ "$draft" = "false" ]; then
+          complete="$(gh release view "v$version" --repo "$GITHUB_REPOSITORY" --json assets -q '[.assets[].name] | any(. == "latest.yml")' 2>/dev/null || echo false)"
+          if [ "$draft" = "false" ] && [ "$complete" = "true" ]; then
             echo "Release v$version is already published; bump the version in package.json to publish a new one."
             echo "publish=false" >> "$GITHUB_OUTPUT"
+          elif [ "$draft" = "false" ]; then
+            # A published release without the update feed is a broken earlier run: repair it.
+            echo "Release v$version is missing its installer; turning it back into a draft to finish it."
+            gh release edit "v$version" --repo "$GITHUB_REPOSITORY" --draft=true
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "draft=true" >> "$GITHUB_OUTPUT"
           else
             echo "publish=true" >> "$GITHUB_OUTPUT"
             echo "draft=$draft" >> "$GITHUB_OUTPUT"
