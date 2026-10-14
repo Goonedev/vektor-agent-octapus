@@ -183,3 +183,31 @@ test('install and Claude Code tools ask before running', async () => {
   assert.equal((await tools.execute('ask_claude_code', { prompt: 'x', project_path: '~' }, deny)).denied, true);
   assert.equal(asked, 2);
 });
+
+test('run_steps runs tools in order and stops at the first failure or refusal', async () => {
+  const ok = await tools.execute('run_steps', { steps: [
+    { tool: 'calculate', args_json: '{"expression":"6*7"}' },
+    { tool: 'calculate', args_json: '{"expression":"2+2"}', wait_ms: 10 }
+  ] }, {});
+  assert.deepEqual(ok.data.map((d) => d.data.result), [42, 4]);
+
+  const stopped = await tools.execute('run_steps', { steps: [
+    { tool: 'calculate', args_json: '{"expression":"1+"}' },
+    { tool: 'calculate', args_json: '{"expression":"1"}' }
+  ] }, {});
+  assert.equal(stopped.data.length, 1);
+  assert.match(stopped.summary, /1\. adımda/);
+
+  let asked = 0;
+  const refused = await tools.execute('run_steps', { steps: [{ tool: 'run_command', args_json: '{"command":"echo x"}' }] }, { confirm: async () => { asked++; return false; } });
+  assert.equal(asked, 1);
+  assert.equal(refused.data[0].denied, true);
+
+  const nested = await tools.execute('run_steps', { steps: [{ tool: 'run_steps', args_json: '{}' }] }, {});
+  assert.equal(nested.data[0].ok, false);
+});
+
+test('array parameters accept a JSON string from the model', () => {
+  const out = tools.coerce({ steps: '[{"tool":"calculate"}]' }, { steps: { type: 'array', items: { type: 'object' } } });
+  assert.deepEqual(out.steps, [{ tool: 'calculate' }]);
+});

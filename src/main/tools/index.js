@@ -27,7 +27,8 @@ const TOOLS = [
   ...require('./productivity'),
   ...require('./utility'),
   ...require('./actions'),
-  ...require('./ui')
+  ...require('./ui'),
+  ...require('./steps')
 ];
 
 const BY_NAME = new Map(TOOLS.map((t) => [t.name, t]));
@@ -52,7 +53,7 @@ const ICONS = {
   generate_password: 'key', random_pick: 'dice', ping_host: 'activity', dns_lookup: 'globe', check_port: 'plug',
   git_status: 'code', open_in_vscode: 'code',
   play_youtube: 'play', steam_install: 'arrows', steam_launch: 'play', ask_claude_code: 'sparkles',
-  click_button: 'pointer', list_buttons: 'window'
+  click_button: 'pointer', list_buttons: 'window', run_steps: 'layers'
 };
 
 /* ------------------------------------------------------------ schema */
@@ -60,9 +61,14 @@ const ICONS = {
 const TYPE = { string: 'STRING', number: 'NUMBER', integer: 'INTEGER', boolean: 'BOOLEAN', array: 'ARRAY', object: 'OBJECT' };
 
 function paramSchema(p) {
-  const s = { type: TYPE[p.type], description: p.description };
+  const s = { type: TYPE[p.type] };
+  if (p.description) s.description = p.description;
   if (p.enum) s.enum = p.enum;
-  if (p.type === 'array') s.items = { type: TYPE[p.items?.type || 'string'] };
+  if (p.type === 'array') s.items = paramSchema(p.items || { type: 'string' });
+  if (p.type === 'object' && p.properties) {
+    s.properties = Object.fromEntries(Object.entries(p.properties).map(([k, v]) => [k, paramSchema(v)]));
+    if (p.required?.length) s.required = p.required;
+  }
   return s;
 }
 
@@ -113,7 +119,12 @@ function coerce(args, params) {
       out[k] = Number.isFinite(n) ? (p.type === 'integer' ? Math.round(n) : n) : v;
     } else if (p.type === 'integer' && typeof v === 'number') out[k] = Math.round(v);
     else if (p.type === 'boolean' && typeof v === 'string') out[k] = /^(true|1|evet|yes)$/i.test(v);
-    else if (p.type === 'array' && typeof v === 'string') out[k] = v.split(',').map((s) => s.trim()).filter(Boolean);
+    else if (p.type === 'array' && typeof v === 'string') {
+      // Arrays of objects may arrive as a JSON string; plain lists as "a, b, c".
+      let parsed = null;
+      if (/^\s*\[/.test(v)) { try { parsed = JSON.parse(v); } catch { /* not JSON */ } }
+      out[k] = Array.isArray(parsed) ? parsed : v.split(',').map((s) => s.trim()).filter(Boolean);
+    }
     else out[k] = v;
   }
   return out;
