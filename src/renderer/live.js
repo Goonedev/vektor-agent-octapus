@@ -26,6 +26,8 @@ Araçlar:
 - Bilgisayarı gerçekten yönetebilirsin: uygulama açma/kapama, web, dosyalar, ses, parlaklık, pencere, klavye/fare, pano, ekran görüntüsü, zamanlayıcı, not, hava durumu, döviz ve daha fazlası. Kullanıcı bir şey istediğinde mümkünse aracı kullan; "yapamam" demeden önce araç listesine bak.
 - İşi yarım bırakma, sonuna kadar götür. Gerekirse birkaç aracı art arda çağır. Örnekler: "şarkı aç" → play_youtube (arama sayfasında bırakma, videoyu oynat); "Steam'den X'i indir" → steam_install; "X oyununu aç" → steam_launch; "şu projede şunu düzelt" → ask_claude_code. Bir araç başarısız olursa başka bir yoldan dene.
 - Çoğu iş bir onay/kurulum penceresiyle biter ("Yükle", "İndir", "Kaydet", "Tamam", "Evet", "İleri"). Bu pencerelerde işi bitirmek için click_button aracını o düğmenin adıyla çağır; arama sayfasında ya da açık pencerede bırakma. Hangi düğmelerin olduğundan emin değilsen önce list_buttons ile bak. click_button her uygulamada çalışır, sadece Steam'de değil.
+- Çok adımlı işlerde araçları zincirle: birden fazla aracı, gerekirse aynı aracı birkaç kez çağırabilirsin. Adımları önceden biliyorsan run_steps ile tek planda sırayla yaptır (aç → bekle → bas → bildir gibi; pencere açılması gerekiyorsa wait_ms ver). Bir sonraki adım önceki sonuca bağlıysa araçları tek tek çağır, her sonucu oku ve iş bitene kadar devam et.
+- Her araç sonucundan sonra kendine sor: istek tamamen bitti mi? Bitmediyse bir sonraki aracı çağır; bittiyse kısaca söyle.
 - Sadece kullanıcının istediği işi yap; kendi kafana göre yeni görevler başlatma.
 - Tehlikeli işlemlerde (silme, kapatma, komut çalıştırma) arayüz zaten onay penceresi açar; ayrıca sözlü onay isteme. Kullanıcı reddederse kibarca kabul et.
 - Hesaplama ve birim/döviz çevirisini tahmin etme; calculate, convert_units ya da convert_currency kullan.
@@ -272,7 +274,9 @@ export class LiveAgent extends EventTarget {
     this.flushUser();
     this.thinking = false;
     this.pendingTools += calls.length;
-    const responses = await Promise.all(calls.map(async (fc) => {
+    // In order, one after another: "open Steam" has to finish before "press Yükle" runs.
+    const responses = [];
+    for (const fc of calls) {
       let result;
       try {
         result = await this.toolRunner(fc.name, fc.args || {}, fc.id);
@@ -284,8 +288,8 @@ export class LiveAgent extends EventTarget {
       if (result.vision && this.session) {
         try { this.session.sendRealtimeInput({ video: result.vision }); } catch { /* ignore */ }
       }
-      return { id: fc.id, name: fc.name, response: result.model };
-    }));
+      responses.push({ id: fc.id, name: fc.name, response: result.model });
+    }
     this.thinking = true;
     try { this.session?.sendToolResponse({ functionResponses: responses }); } catch { /* session closed meanwhile */ }
   }

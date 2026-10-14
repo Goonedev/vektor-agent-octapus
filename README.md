@@ -11,9 +11,10 @@ Vektör, bilgisayarında yaşayan sesli bir yapay zekâ asistanı. Konuşursun, 
 - **Sesli, canlı arayüz.** Ortadaki cam küre dinlerken maviye, seni duyarken turkuaza, düşünürken mora, araç çalıştırırken turuncuya döner; kenarı ve halkaları sesin şiddetiyle nefes alır. Konuşmanın yazılı dökümü altta akar.
 - **Canlı bileşenler.** Her araç çağrısı sağ panelde bir kart olarak açılır ve sonucuna göre şekil alır: hava durumu kartı, CPU/bellek halkaları, dosya listeleri, ekran görüntüsü önizlemesi, geri sayan zamanlayıcılar, klavye kısayolu tuşları, terminal çıktısı.
 - **Mini ada.** Ekranın en üstünde, Dynamic Island tarzı küçük bir çubuk. Her zaman üstte durur, Vektör'ün o anki durumunu, konuşmanın altyazısını ve çalışan aracı gösterir. Üzerine gelince mikrofon ve "aç" düğmeleri çıkar; geri kalan alana tıklamalar arkadaki pencerelere geçer.
-- **106 işlevsel araç.** Hepsi bilgisayarda gerçekten bir şey yapar; Windows, macOS ve Linux için ayrı ayrı uygulanmıştır. Tam liste aşağıda.
+- **107 işlevsel araç.** Hepsi bilgisayarda gerçekten bir şey yapar; Windows, macOS ve Linux için ayrı ayrı uygulanmıştır. Tam liste aşağıda.
 - **İşi sonuna kadar götürür.** Açılan "Yükle", "İndir", "Kaydet", "Tamam" gibi düğmelere her uygulamada kendisi basar (click_button).
 - "Şarkı aç" dersen YouTube'da bulup videoyu oynatır; "Steam'den X'i indir" dersen kurulumu başlatıp "Yükle"ye basar; "şu projede şunu düzelt" dersen Claude Code'u o klasörde çalıştırıp sonucu özetler.
+- **Çok adımlı işler.** Birden fazla aracı, gerekirse aynısını birkaç kez, sırayla çalıştırır; adımları önceden biliyorsa run_steps ile tek planda yapar (aç → bekle → bas → bildir). Bir adım başarısız olursa ya da reddedilirse orada durur ve nedenini söyler.
 - **Onay her yerde.** Riskli işlerde onay ana pencerede ve mini adada çıkar; ekranın üstünden "İzin ver / Reddet" dersin.
 - **Güvenlik.** Silme, kapatma, komut çalıştırma gibi riskli araçlar çalışmadan önce bir onay penceresi açılır (Enter = izin ver, Esc = reddet, 45 saniyede otomatik ret).
 - **Glassmorphism + Apple paleti.** Renkler, gri tonları, ikon çizgisi ve tipografi, "Cupertino Docs" tasarım sisteminden geliyor: Apple sistem renkleri, SF Pro, 20×20 ızgarada 1.5px çizgili ikonlar. Koyu ve açık tema.
@@ -89,7 +90,7 @@ src/
   main/                 Electron ana süreci
     main.js             pencereler, mini ada, tepsi, kısayol, onay akışı, IPC
     preload.js          arayüze açılan güvenli köprü (window.vektor)
-    tools/              106 araç — kategori başına bir dosya
+    tools/              107 araç — kategori başına bir dosya
       index.js          kayıt, Gemini şeması, çalıştırma, onay
       util.js           platform yardımcıları (PowerShell, AppleScript, xdotool...)
     native/             Windows yerel yardımcısı (C#)
@@ -119,7 +120,7 @@ npm run dev       # geliştirici araçlarıyla başlatır
 
 Yeni bir araç eklemek için ilgili kategori dosyasına `{ name, category, title, description, params, run }` biçiminde bir nesne eklemen yeterli; Gemini şeması, araç kütüphanesi ve kartlar otomatik oluşur. Sonucun arayüzde nasıl görüneceğini `display.type` belirler (`stats`, `list`, `weather`, `image`, `timer`, `kv`, `value`...).
 
-## 106 araç
+## 107 araç
 
 *onaylı* işaretli araçlar çalışmadan önce izin ister.
 
@@ -264,7 +265,7 @@ Yeni bir araç eklemek için ilgili kategori dosyasına `{ name, category, title
 | `list_todos` | Yapılacaklar listesini gösterir. |
 | `complete_todo` | Bir görevi tamamlandı olarak işaretler. |
 
-### Araçlar (8)
+### Araçlar (9)
 
 | Araç | Ne yapar |
 | --- | --- |
@@ -276,6 +277,7 @@ Yeni bir araç eklemek için ilgili kategori dosyasına `{ name, category, title
 | `world_clock` | Bir ya da birden fazla şehirde şu an saatin kaç olduğunu gösterir. |
 | `generate_password` | Güçlü, rastgele bir şifre üretir ve panoya kopyalar. Şifreyi sesli okuma; sadece panoda olduğunu söyle. |
 | `random_pick` | Yazı tura atar, zar atar, aralıkta rastgele sayı üretir ya da bir listeden seçim yapar. |
+| `run_steps` | Birden fazla aracı tek bir planda, sırayla çalıştırır. Kullanıcının isteği birkaç adım gerektiriyorsa (aç → bul → bas → bildir gibi) bunu kullan; aynı aracı birden fazla kez de koyabilirsin. Her adımda tool = araç adı, args_json = parametreleri JSON metni olarak, wait_ms = o adımdan sonra beklenecek süre (pencere açılması gibi). Bir adım başarısız olursa ya da kullanıcı reddederse plan orada durur. |
 
 ### Ağ (3)
 
