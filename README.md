@@ -11,8 +11,9 @@ Vektör, bilgisayarında yaşayan sesli bir yapay zekâ asistanı. Konuşursun, 
 - **Sesli, canlı arayüz.** Ortadaki cam küre dinlerken maviye, seni duyarken turkuaza, düşünürken mora, araç çalıştırırken turuncuya döner; kenarı ve halkaları sesin şiddetiyle nefes alır. Konuşmanın yazılı dökümü altta akar.
 - **Canlı bileşenler.** Her araç çağrısı sağ panelde bir kart olarak açılır ve sonucuna göre şekil alır: hava durumu kartı, CPU/bellek halkaları, dosya listeleri, ekran görüntüsü önizlemesi, geri sayan zamanlayıcılar, klavye kısayolu tuşları, terminal çıktısı.
 - **Mini ada.** Ekranın en üstünde, Dynamic Island tarzı küçük bir çubuk. Her zaman üstte durur, Vektör'ün o anki durumunu, konuşmanın altyazısını ve çalışan aracı gösterir. Üzerine gelince mikrofon ve "aç" düğmeleri çıkar; geri kalan alana tıklamalar arkadaki pencerelere geçer.
-- **104 işlevsel araç.** Hepsi bilgisayarda gerçekten bir şey yapar; Windows, macOS ve Linux için ayrı ayrı uygulanmıştır. Tam liste aşağıda.
-- **İşi sonuna kadar götürür.** "Şarkı aç" dersen YouTube'da bulup videoyu oynatır; "Steam'den X'i indir" dersen kurulumu başlatır; "şu projede şunu düzelt" dersen Claude Code'u o klasörde çalıştırıp sonucu özetler.
+- **106 işlevsel araç.** Hepsi bilgisayarda gerçekten bir şey yapar; Windows, macOS ve Linux için ayrı ayrı uygulanmıştır. Tam liste aşağıda.
+- **İşi sonuna kadar götürür.** Açılan "Yükle", "İndir", "Kaydet", "Tamam" gibi düğmelere her uygulamada kendisi basar (click_button).
+- "Şarkı aç" dersen YouTube'da bulup videoyu oynatır; "Steam'den X'i indir" dersen kurulumu başlatıp "Yükle"ye basar; "şu projede şunu düzelt" dersen Claude Code'u o klasörde çalıştırıp sonucu özetler.
 - **Onay her yerde.** Riskli işlerde onay ana pencerede ve mini adada çıkar; ekranın üstünden "İzin ver / Reddet" dersin.
 - **Güvenlik.** Silme, kapatma, komut çalıştırma gibi riskli araçlar çalışmadan önce bir onay penceresi açılır (Enter = izin ver, Esc = reddet, 45 saniyede otomatik ret).
 - **Glassmorphism + Apple paleti.** Renkler, gri tonları, ikon çizgisi ve tipografi, "Cupertino Docs" tasarım sisteminden geliyor: Apple sistem renkleri, SF Pro, 20×20 ızgarada 1.5px çizgili ikonlar. Koyu ve açık tema.
@@ -88,7 +89,7 @@ src/
   main/                 Electron ana süreci
     main.js             pencereler, mini ada, tepsi, kısayol, onay akışı, IPC
     preload.js          arayüze açılan güvenli köprü (window.vektor)
-    tools/              104 araç — kategori başına bir dosya
+    tools/              106 araç — kategori başına bir dosya
       index.js          kayıt, Gemini şeması, çalıştırma, onay
       util.js           platform yardımcıları (PowerShell, AppleScript, xdotool...)
     native/             Windows yerel yardımcısı (C#)
@@ -118,7 +119,7 @@ npm run dev       # geliştirici araçlarıyla başlatır
 
 Yeni bir araç eklemek için ilgili kategori dosyasına `{ name, category, title, description, params, run }` biçiminde bir nesne eklemen yeterli; Gemini şeması, araç kütüphanesi ve kartlar otomatik oluşur. Sonucun arayüzde nasıl görüneceğini `display.type` belirler (`stats`, `list`, `weather`, `image`, `timer`, `kv`, `value`...).
 
-## 104 araç
+## 106 araç
 
 *onaylı* işaretli araçlar çalışmadan önce izin ister.
 
@@ -148,7 +149,7 @@ Yeni bir araç eklemek için ilgili kategori dosyasına `{ name, category, title
 | `open_system_settings` | İşletim sisteminin ayarlar uygulamasını belirli bir bölümde açar. |
 | `open_terminal` | Belirtilen klasörde bir terminal penceresi açar. |
 | `open_task_manager` | Görev Yöneticisi / Etkinlik Monitörü'nü açar. |
-| `steam_install` · *onaylı* | Bir oyunu Steam mağazasında bulur ve Steam istemcisinde kurulumunu başlatır. Ücretli oyunlarda Steam satın alma sayfasını açar. |
+| `steam_install` · *onaylı* | Bir oyunu Steam mağazasında bulur, Steam'de kurulumu başlatır ve Steam'in Yükle penceresini onaylayarak indirmeyi başlatır (Windows). Ücretli oyunlarda satın alma gerekir. |
 | `steam_launch` | Steam'de kurulu bir oyunu adıyla başlatır. |
 
 ### Dosyalar (16)
@@ -224,7 +225,7 @@ Yeni bir araç eklemek için ilgili kategori dosyasına `{ name, category, title
 | `clipboard_clear` | Panoyu ve Vektör'ün pano geçmişini temizler (ör. bir şifre kopyaladıktan sonra). |
 | `clipboard_history` | Vektör açıkken panoya kopyalanan son metinleri listeler. |
 
-### Klavye ve fare (6)
+### Klavye ve fare (8)
 
 | Araç | Ne yapar |
 | --- | --- |
@@ -234,6 +235,8 @@ Yeni bir araç eklemek için ilgili kategori dosyasına `{ name, category, title
 | `mouse_click` | Fareyle tıklar. Koordinat verilirse önce oraya gider. |
 | `mouse_scroll` | Fare tekerleğiyle kaydırır. Pozitif = yukarı, negatif = aşağı. |
 | `show_desktop` | Tüm pencereleri küçültüp masaüstünü gösterir. |
+| `click_button` | Öndeki uygulamada üstünde yazan metne göre bir düğmeye, bağlantıya ya da menü öğesine basar: "Yükle", "İndir", "Kaydet", "Tamam", "Evet", "İleri" gibi. Bir işlemi bitirmek için açılan pencerelerdeki düğmeyi tamamlamak için bunu kullan; ekranı tahmin edip koordinat tıklamana gerek kalmaz. |
+| `list_buttons` | Öndeki penceredeki basılabilir düğme, bağlantı ve menü öğelerinin adlarını listeler. "Ekranda hangi düğmeler var?" ya da bir işlemi bitirmeden önce doğru düğmenin adını öğrenmek için kullan. |
 
 ### Pencereler (4)
 
