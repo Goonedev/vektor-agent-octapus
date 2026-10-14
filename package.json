@@ -1,7 +1,7 @@
 {
   "name": "vektor",
   "productName": "Vektör",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Vektör — Gemini Live ile çalışan, bilgisayarını yöneten sesli masaüstü ajanı",
   "main": "src/main/main.js",
   "private": true,

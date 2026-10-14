@@ -463,3 +463,5 @@ module.exports = [
 ];
 
 module.exports.parseCombo = parseCombo;
+module.exports.listWindows = listWindows;
+module.exports.pressCombo = pressCombo;
