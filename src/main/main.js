@@ -110,6 +110,7 @@ ipcMain.on('confirm:respond', (e, { id, approved }) => {
 function toolContext(source) {
   return {
     source,
+    get settings() { return store.get('settings'); },
     electron: { shell, desktopCapturer, screen, nativeTheme, nativeImage, app },
     store,
     scheduler,

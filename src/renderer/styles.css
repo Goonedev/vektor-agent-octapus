@@ -561,3 +561,9 @@ h2.mt { margin-top: 26px; }
 .badge-dot[hidden] { display: none; }
 .toast button { pointer-events: auto; margin-left: 6px; color: var(--accent); font-weight: 600; }
 .btn[hidden], .icon-btn[hidden] { display: none; }
+
+.article .sources { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+.src { display: inline-flex; align-items: center; gap: 5px; max-width: 220px; padding: 4px 9px; border-radius: 999px; background: var(--fill-subtle); color: var(--ink-2); font-size: 11.5px; }
+.src:hover { background: var(--fill); color: var(--ink); }
+.src .ic { width: 13px; height: 13px; flex: none; color: var(--accent); }
+.src span, .src { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
