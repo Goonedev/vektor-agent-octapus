@@ -57,3 +57,16 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; transition: opacity .3s ease;
 }
 .island.expanded.has-caption .caption { height: 36px; opacity: 1; }
+
+/* approval on the island, answerable without opening the main window */
+.island.confirming { width: 440px; height: 132px; border-radius: 28px; box-shadow: 0 10px 30px rgba(0, 0, 0, .35), 0 0 0 1px rgba(255, 179, 64, .45); }
+.confirm { padding: 0 16px 12px; position: relative; }
+.confirm[hidden] { display: none; }
+.c-title { margin: 0 0 10px; font-size: 12.5px; line-height: 1.35; color: #d1d1d6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.c-title b { color: #ffb340; font-weight: 600; margin-right: 6px; }
+.c-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.c-btn { height: 30px; padding: 0 16px; border-radius: 999px; font-size: 13px; font-weight: 600; background: rgba(118, 118, 128, .3); color: #f5f5f7; }
+.c-btn:hover { background: rgba(118, 118, 128, .45); }
+.c-btn.yes { background: #0071e3; }
+.c-btn.yes:hover { background: #0062c9; }
+.c-timer { position: absolute; left: 16px; right: 16px; bottom: 4px; height: 2px; border-radius: 2px; background: #ffb340; transform-origin: left; }

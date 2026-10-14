@@ -90,7 +90,9 @@ const pendingConfirms = new Map();
 function confirm(request) {
   if (!store.get('settings').confirmDanger) return Promise.resolve(true);
   const id = crypto.randomUUID();
-  showMain();
+  // With the mini island on, the approval appears there; don't steal focus from what the user is doing.
+  if (!miniWindow) showMain();
+  else miniWindow.setIgnoreMouseEvents(false);
   return new Promise((resolve) => {
     const timer = setTimeout(() => { pendingConfirms.delete(id); broadcast('confirm:closed', { id }); resolve(false); }, 45000);
     pendingConfirms.set(id, (ok) => { clearTimeout(timer); pendingConfirms.delete(id); resolve(ok); });

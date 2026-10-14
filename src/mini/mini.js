@@ -19,17 +19,18 @@ const EXPAND = new Set(['connecting', 'hearing', 'thinking', 'speaking', 'tool',
 
 let current = { phase: 'offline', level: 0 };
 let hover = false;
+let pending = null; // the approval request shown on the island, if any
 
 function render() {
   const s = current;
   island.dataset.phase = s.phase;
   island.style.setProperty('--tone', TONE[s.phase] || TONE.idle);
-  const expanded = hover || EXPAND.has(s.phase);
+  const expanded = hover || EXPAND.has(s.phase) || !!pending;
   island.classList.toggle('expanded', expanded);
   island.classList.toggle('hover', hover);
   $('label').textContent = s.phase === 'offline' ? (hover ? 'Vektör · bağlanmak için dokun' : 'Vektör') : s.label || 'Vektör';
   const sub = s.phase === 'tool' ? 'Araç çalışıyor'
-    : s.phase === 'confirm' ? 'Ana pencerede onay bekliyor'
+    : s.phase === 'confirm' ? 'Onayın bekleniyor'
       : s.timers ? `${s.timers} aktif zamanlayıcı` : s.connected ? (s.mic ? 'Mikrofon açık' : 'Mikrofon kapalı') : '';
   $('sub').textContent = sub;
   const caption = (s.phase === 'speaking' || s.phase === 'hearing' || s.phase === 'thinking') ? s.caption || '' : '';
@@ -37,8 +38,11 @@ function render() {
   island.classList.toggle('has-caption', expanded && !!caption);
   $('mic').classList.toggle('on', !!s.mic);
   $('mic').innerHTML = icon(s.mic ? 'mic' : 'mic-off');
+  island.classList.toggle('confirming', !!pending);
+  $('confirm').hidden = !pending;
+  if (pending) island.classList.remove('has-caption');
   // Tell the main process how tall we are so clicks below the island pass through.
-  api.mini.size(expanded ? (caption ? 118 : 78) : 50);
+  api.mini.size(pending ? 146 : expanded ? (caption ? 118 : 78) : 50);
 }
 
 api.state.onState((s) => {
@@ -63,7 +67,42 @@ function animateBars(t) {
 requestAnimationFrame(animateBars);
 
 island.addEventListener('mouseenter', () => { hover = true; api.mini.hover(true); render(); });
-island.addEventListener('mouseleave', () => { hover = false; api.mini.hover(false); render(); });
+island.addEventListener('mouseleave', () => { hover = false; if (!pending) api.mini.hover(false); render(); });
+
+/* Approvals: shown here so the user can answer from wherever they are. */
+function showConfirm(req) {
+  pending = req;
+  $('c-title').textContent = req.title;
+  const args = Object.entries(req.args || {}).map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(' · ');
+  $('c-args').textContent = args;
+  const bar = $('c-timer');
+  bar.style.transition = 'none';
+  bar.style.transform = 'scaleX(1)';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    bar.style.transition = `transform ${req.timeoutMs || 45000}ms linear`;
+    bar.style.transform = 'scaleX(0)';
+  }));
+  api.mini.hover(true);
+  render();
+}
+
+function closeConfirm(id) {
+  if (!pending || (id && pending.id !== id)) return;
+  pending = null;
+  if (!hover) api.mini.hover(false);
+  render();
+}
+
+function answer(ok) {
+  if (!pending) return;
+  api.confirm.respond(pending.id, ok);
+  closeConfirm();
+}
+
+api.confirm.onRequest(showConfirm);
+api.confirm.onClosed(({ id }) => closeConfirm(id));
+$('c-yes').addEventListener('click', () => answer(true));
+$('c-no').addEventListener('click', () => answer(false));
 $('orb-btn').addEventListener('click', () => api.mini.command('toggle-mic'));
 $('mic').addEventListener('click', () => api.mini.command('toggle-mic'));
 $('open').addEventListener('click', () => api.mini.command('open'));
