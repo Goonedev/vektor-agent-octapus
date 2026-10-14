@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld('vektor', {
   tools: {
     catalog: () => ipcRenderer.invoke('tools:catalog'),
     declarations: () => ipcRenderer.invoke('tools:declarations'),
+    packIndex: () => ipcRenderer.invoke('tools:packIndex'),
     execute: (name, args, source, callId) => ipcRenderer.invoke('tools:execute', { name, args, source, callId }),
     onStart: on('tool:start'),
     onEnd: on('tool:end'),

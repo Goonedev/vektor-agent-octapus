@@ -32,7 +32,14 @@ const SAFE = [
   ['compress_zip', { path: path.join(os.tmpdir(), 'vektor-smoke', 'a.txt') }],
   ['check_port', { port: 9 }],
   ['list_running_apps', { limit: 5 }],
-  ['git_status', { path: process.cwd() }]
+  ['git_status', { path: process.cwd() }],
+  // Library tools, through the same paths the model uses.
+  ['find_tools', { query: 'bluetooth ayarları' }], ['use_tool', { name: 'calc_number_words', args_json: '{"number":"2026"}' }],
+  ['text_upper', { text: 'istanbul' }], ['calc_roman', { value: '1994' }], ['calc_timezone', { time: '14:30', to: 'Tokyo' }],
+  ['info_moon_phase', {}], ['dev_cron_explain', { expression: '*/15 9-17 * * 1-5' }], ['dev_versions', {}],
+  ['sys_uptime', {}], ['sys_top_memory', {}],
+  ['files_folder_size', { path: path.join(os.tmpdir(), 'vektor-smoke') }], ['files_tree', { path: path.join(os.tmpdir(), 'vektor-smoke') }],
+  ['files_hash', { path: path.join(os.tmpdir(), 'vektor-smoke', 'a.txt') }], ['files_count_by_type', { path: path.join(os.tmpdir(), 'vektor-smoke') }]
 ];
 
 // Network-dependent tools are reported but never fail the run.

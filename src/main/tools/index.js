@@ -15,10 +15,16 @@ const CATEGORIES = [
   { id: 'productivity', title: 'Verimlilik', icon: 'timer' },
   { id: 'utility', title: 'Araçlar', icon: 'calculator' },
   { id: 'network', title: 'Ağ', icon: 'wifi' },
-  { id: 'dev', title: 'Geliştirici', icon: 'terminal' }
+  { id: 'dev', title: 'Geliştirici', icon: 'terminal' },
+  { id: 'settings', title: 'Windows ayarları', icon: 'gear' },
+  { id: 'sites', title: 'Siteler', icon: 'link' },
+  { id: 'shortcuts', title: 'Kısayollar', icon: 'keyboard' },
+  { id: 'text', title: 'Metin', icon: 'doc' },
+  { id: 'info', title: 'Bilgi', icon: 'info' }
 ];
 
-const TOOLS = [
+/* Core tools are declared to the live model directly. */
+const CORE = [
   ...require('./web'),
   ...require('./apps'),
   ...require('./files'),
@@ -31,6 +37,23 @@ const TOOLS = [
   ...require('./steps'),
   ...require('./research')
 ];
+
+/* Packs: the larger library, reached through find_tools / use_tool (and run_steps). */
+const PACKS = [
+  ...require('./packs/settings'),
+  ...require('./packs/sites'),
+  ...require('./packs/shortcuts'),
+  ...require('./packs/media'),
+  ...require('./packs/text'),
+  ...require('./packs/calc'),
+  ...require('./packs/info'),
+  ...require('./packs/dev'),
+  ...require('./packs/sysinfo'),
+  ...require('./packs/fileops')
+].map((t) => ({ ...t, pack: true }));
+
+const TOOLS = [...CORE, ...PACKS];
+TOOLS.push(...require('./meta').make({ TOOLS, CATEGORIES, execute: (...a) => execute(...a) }));
 
 const BY_NAME = new Map(TOOLS.map((t) => [t.name, t]));
 
@@ -55,7 +78,8 @@ const ICONS = {
   git_status: 'code', open_in_vscode: 'code',
   play_youtube: 'play', steam_install: 'arrows', steam_launch: 'play', ask_claude_code: 'sparkles',
   click_button: 'pointer', list_buttons: 'window', run_steps: 'layers',
-  deep_research: 'search', find_download_link: 'arrows', download_from_web: 'arrows'
+  deep_research: 'search', find_download_link: 'arrows', download_from_web: 'arrows',
+  find_tools: 'search', use_tool: 'spark', find_a_way: 'lightbulb'
 };
 
 /* ------------------------------------------------------------ schema */
@@ -74,9 +98,9 @@ function paramSchema(p) {
   return s;
 }
 
-/** Function declarations in the shape the Gemini Live API expects. */
+/** Function declarations in the shape the Gemini Live API expects (core tools only). */
 function declarations() {
-  return TOOLS.map((t) => {
+  return TOOLS.filter((t) => !t.pack).map((t) => {
     const keys = Object.keys(t.params || {});
     const decl = {
       name: t.name,
@@ -103,10 +127,19 @@ function catalog() {
       title: t.title,
       description: t.description,
       danger: !!t.danger,
+      pack: !!t.pack,
       icon: ICONS[t.name] || null,
       params: Object.entries(t.params || {}).map(([key, p]) => ({ key, ...p }))
     }))
   };
+}
+
+/** Pack tool names grouped by category, for the system prompt: the model can use_tool them directly. */
+function packIndex() {
+  return CATEGORIES.map((c) => {
+    const names = PACKS.filter((t) => t.category === c.id).map((t) => t.name);
+    return names.length ? `${c.title}: ${names.join(', ')}` : null;
+  }).filter(Boolean).join('\n');
 }
 
 /* --------------------------------------------------------- execution */
@@ -182,4 +215,4 @@ function forModel(result) {
   return out;
 }
 
-module.exports = { TOOLS, CATEGORIES, declarations, catalog, execute, forModel, coerce };
+module.exports = { TOOLS, CATEGORIES, declarations, packIndex, catalog, execute, forModel, coerce };

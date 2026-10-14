@@ -213,13 +213,17 @@ async function say(text) {
 /* --------------------------------------------------------------- tool cards */
 
 async function runTool(name, args, source, callId) {
-  const tool = state.toolByName.get(name) || { name, title: name, category: 'dev' };
+  // use_tool runs a library tool by name; the card shows that tool rather than the wrapper.
+  const inner = name === 'use_tool' ? state.toolByName.get(args?.name) : null;
+  const tool = inner || state.toolByName.get(name) || { name, title: name, category: 'dev' };
   const id = callId || `m-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   state.runningTools.set(id, tool);
   renderPhase();
 
   $('#live-empty')?.remove();
-  const card = cardShell({ id, tool, args, source });
+  let shownArgs = args;
+  if (inner) { try { shownArgs = JSON.parse(args.args_json || '{}'); } catch { shownArgs = {}; } }
+  const card = cardShell({ id, tool, args: shownArgs, source });
   $('#live-feed').prepend(card);
   trimFeed();
   state.cardCount++;
