@@ -470,6 +470,39 @@ h2.mt { margin-top: 26px; }
 .note-item:hover .icon-btn { opacity: 1; }
 .empty-note { color: var(--ink-3); font-size: 13px; padding: 12px 0; }
 
+/* ----------------------------------------------------------- memory, skills */
+
+.panel-hint { color: var(--ink-3); font-size: 12.5px; margin: -4px 0 12px; line-height: 1.5; }
+.note-item .item-actions { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; opacity: 0; }
+.note-item .item-actions .icon-btn { position: static; opacity: 1; }
+.note-item:hover .item-actions, .note-item:focus-within .item-actions { opacity: 1; }
+.note-item .steps { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.note-item .steps span { font-size: 11.5px; padding: 2px 8px; border-radius: 999px; background: var(--fill); color: var(--ink-2); }
+.note-item.memory b { font-weight: 500; padding-right: 32px; }
+
+/* ------------------------------------------------------------------ history */
+
+.head-actions { display: flex; gap: 8px; align-items: center; }
+.history { margin: 0 8px 24px; padding: 6px 14px 14px; border-radius: var(--radius-xl); }
+.history h3 { font-size: 12px; font-weight: 600; color: var(--ink-3); margin: 14px 4px 6px; text-transform: none; }
+.h-row { display: grid; grid-template-columns: 52px 22px 1fr; gap: 10px; align-items: start; padding: 7px 6px; border-radius: var(--radius-md); font-size: 13px; }
+.h-row:hover { background: var(--fill-subtle); }
+.h-row time { color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; padding-top: 1px; }
+.h-row > span { color: var(--ink-3); display: grid; place-items: center; }
+.h-row svg { width: 16px; height: 16px; }
+.h-row p { margin: 0; white-space: pre-wrap; user-select: text; color: var(--ink); }
+.h-row.model p { color: var(--ink-2); }
+.h-row.tool p { color: var(--ink-3); font-size: 12.5px; }
+.h-row mark { background: color-mix(in srgb, var(--accent) 30%, transparent); color: inherit; border-radius: 3px; }
+
+/* ------------------------------------------------------------------ mcp */
+
+.mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
+.field-error { color: var(--danger) !important; }
+.field-row.end { justify-content: flex-end; margin-top: 8px; }
+#mcp-status:empty { display: none; }
+#mcp-status li { padding: 8px 4px; }
+
 /* ------------------------------------------------------------------ settings */
 
 .settings { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 8px 24px; align-items: start; }

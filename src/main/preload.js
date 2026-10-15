@@ -24,7 +24,21 @@ contextBridge.exposeInMainWorld('vektor', {
     execute: (name, args, source, callId) => ipcRenderer.invoke('tools:execute', { name, args, source, callId }),
     onStart: on('tool:start'),
     onEnd: on('tool:end'),
-    onEvent: on('tool:event')
+    onEvent: on('tool:event'),
+    onChanged: on('tools:changed')
+  },
+
+  history: {
+    add: (entry) => ipcRenderer.invoke('history:add', entry),
+    search: (opts) => ipcRenderer.invoke('history:search', opts),
+    recent: (n) => ipcRenderer.invoke('history:recent', n),
+    clear: () => ipcRenderer.invoke('history:clear')
+  },
+
+  mcp: {
+    status: () => ipcRenderer.invoke('mcp:status'),
+    reload: () => ipcRenderer.invoke('mcp:reload'),
+    onStatus: on('mcp:status')
   },
 
   confirm: {

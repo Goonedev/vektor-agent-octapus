@@ -6,56 +6,38 @@
  */
 
 const fs = require('node:fs');
-const { ToolError, isWin, ps, psStr, fetchWithTimeout, fetchJson, resolvePath, truncate } = require('./util');
+const { ToolError, isWin, ps, fetchWithTimeout, fetchJson, resolvePath, truncate } = require('./util');
 
 /*
- * After steam://install, Steam shows its own "Yükle / Install" dialog — on current clients a
- * SEPARATE top-level window titled "Yükle". The user already approved the install in Vektör, so
- * we finish it with the accessibility layer (UI Automation), which can see owned dialog windows
- * that a plain window list drops, and invoke the real button by its name. Windows only.
+ * After steam://install, Steam shows its own "Yükle / Install" dialog as a separate window drawn
+ * with Chromium. The user already approved the install in Vektör, so we finish it through the
+ * accessibility layer (see uia.js): find the dialog, press "Yükle", accept a licence if one
+ * follows, and check that the dialog really closed. Windows only.
  */
-function steamConfirmScript(gameName) {
-  return `
-$ErrorActionPreference='SilentlyContinue'
-Add-Type -AssemblyName UIAutomationClient,UIAutomationTypes,WindowsBase
-$AE=[System.Windows.Automation.AutomationElement]
-$CT=[System.Windows.Automation.ControlType]
-$game=${psStr((gameName || '').toLowerCase())}
-$winWords=@('yükle','install','kur','yukle')
-$btnWords=@('yükle','install','kur','yukle','indir','evet','devam','next','ileri')
-$deadline=(Get-Date).AddSeconds(28)
-while((Get-Date) -lt $deadline){
-  Start-Sleep -Milliseconds 700
-  $wins=$AE::RootElement.FindAll('Children',[System.Windows.Automation.Condition]::TrueCondition)
-  foreach($w in $wins){
-    $wn=$w.Current.Name; if(-not $wn){continue}
-    $wnl=$wn.ToLower()
-    $match=($game -and $wnl.Contains($game))
-    foreach($x in $winWords){ if($wnl.Contains($x)){ $match=$true } }
-    if(-not $match){continue}
-    $cond=New-Object System.Windows.Automation.PropertyCondition($AE::ControlTypeProperty,$CT::Button)
-    foreach($b in $w.FindAll('Descendants',$cond)){
-      $bn=$b.Current.Name; if(-not $bn){continue}
-      $bnl=$bn.ToLower()
-      $hit=$false; foreach($x in $btnWords){ if($bnl -eq $x -or $bnl.StartsWith($x)){ $hit=$true } }
-      if(-not $hit){continue}
-      $p=$null
-      if($b.TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern,[ref]$p)){ $p.Invoke(); 'OK:'+$bn; exit }
-    }
+const STEAM_AVOID = ['satın', 'satin', 'buy', 'purchase', 'sepet', 'cart', 'iptal', 'cancel', 'kaldır', 'uninstall', 'sil', 'delete', 'steam', 'oyna', 'play'];
+
+async function pressInSteamDialog(opts, timeoutMs) {
+  const { pressScript, parsePress } = require('./uia');
+  try {
+    return parsePress(await ps(pressScript({ avoid: STEAM_AVOID, ...opts }), { timeout: timeoutMs }));
+  } catch (e) {
+    return { ok: false, reason: 'error', error: e.message };
   }
-}
-'TIMEOUT'
-`;
 }
 
 async function confirmSteamInstallDialog(gameName) {
-  if (!isWin) return false;
-  try {
-    const out = (await ps(steamConfirmScript(gameName), { timeout: 32000 })).trim().split('\n').pop();
-    return out.startsWith('OK:');
-  } catch {
-    return false;
+  if (!isWin) return { ok: false, reason: 'platform' };
+  const windows = ['yükle', 'install', 'kurulum', gameName].filter(Boolean);
+  // Steam may need to start (and log in) first, so the dialog can take a while to appear.
+  let r = await pressInSteamDialog({ labels: ['Yükle', 'Install', 'İleri', 'Next', 'Devam', 'Continue'], windows, timeoutSec: 90, enterAfterSec: 35 }, 110000);
+  // Older multi-page dialogs: keep going while we are pressing "İleri / Next".
+  for (let i = 0; i < 3 && r.ok && /^(ileri|next|devam|continue)/i.test(r.name.replace('İ', 'i')); i++) {
+    r = await pressInSteamDialog({ labels: ['Yükle', 'Install', 'İleri', 'Next', 'Bitir', 'Finish', 'Devam', 'Continue'], windows, timeoutSec: 12 }, 30000);
   }
+  if (!r.ok) return r;
+  // Some games ask to accept a licence (EULA) right after.
+  const eula = await pressInSteamDialog({ labels: ['Kabul ediyorum', 'Kabul et', 'I Agree', 'Accept', 'Onayla'], windows: [...windows, 'lisans', 'license', 'eula', 'sözleşme'], timeoutSec: 8 }, 25000);
+  return { ...r, eula: eula.ok };
 }
 
 const decode = (s) => s.replace(/\\u0026/g, '&').replace(/\\"/g, '"').replace(/\\u0027/g, "'");
@@ -110,18 +92,23 @@ const tools = [
     title: 'Steam\'den oyun kur',
     description: 'Bir oyunu Steam mağazasında bulur, Steam\'de kurulumu başlatır ve Steam\'in Yükle penceresini onaylayarak indirmeyi başlatır (Windows). Ücretli oyunlarda satın alma gerekir.',
     danger: true,
-    timeout: 60000,
+    timeout: 3 * 60 * 1000,
     params: { game: { type: 'string', description: 'Oyunun adı.', required: true } },
     run: async (a, ctx) => {
       const g = await findSteamGame(a.game);
       await ctx.electron.shell.openExternal(`steam://install/${g.appid}`);
-      const confirmed = await confirmSteamInstallDialog(g.name);
+      const r = await confirmSteamInstallDialog(g.name);
+      const started = r.ok && r.closed;
+      let summary;
+      if (started) summary = `${g.name} Steam'de indirilmeye başladı.${r.eula ? ' Lisans sözleşmesi de onaylandı.' : ''}`;
+      else if (r.ok) summary = `Steam'in kurulum penceresinde “${r.name}” düğmesine basıldı ama pencere hâlâ açık görünüyor. list_buttons ile pencereye bakıp gerekirse click_button ile kalan düğmeye bas.`;
+      else if (r.reason === 'platform') summary = `${g.name} için Steam'in kurulum penceresi açıldı; bu sistemde "Yükle" düğmesine otomatik basılamıyor.`;
+      else summary = `${g.name} için Steam'in kurulum penceresi açıldı ama "Yükle" düğmesi bulunamadı.${r.windows?.length ? ` Görülen pencereler: ${r.windows.slice(0, 6).join(', ')}.` : ''} Steam açılıyor ya da giriş bekliyor olabilir; biraz sonra click_button ile "Yükle"yi dene. Ücretli bir oyunsa önce satın alınması gerekir.`;
       return {
-        summary: confirmed
-          ? `${g.name} Steam'de indirilmeye başladı.`
-          : `${g.name} için Steam'in kurulum penceresi açıldı; "Yükle"ye basman gerekiyor (ücretli oyunsa önce satın alma gerekir).`,
-        display: { type: 'article', title: g.name, subtitle: confirmed ? 'Steam · indiriliyor' : 'Steam · kurulum penceresi açık', text: '', image: g.image, url: `https://store.steampowered.com/app/${g.appid}` },
-        data: { appid: g.appid, name: g.name }
+        ok: started || r.ok,
+        summary,
+        display: { type: 'article', title: g.name, subtitle: started ? 'Steam · indiriliyor' : 'Steam · kurulum penceresi açık', text: '', image: g.image, url: `https://store.steampowered.com/app/${g.appid}` },
+        data: { appid: g.appid, name: g.name, pressed: r.ok ? r.name : null, method: r.method || null, dialog_closed: !!r.closed, seen_windows: r.windows, seen_controls: r.names }
       };
     }
   },

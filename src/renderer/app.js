@@ -17,8 +17,15 @@ const state = {
   cardCount: 0,
   error: null,
   view: 'assistant',
-  libraryCat: 'all'
+  libraryCat: 'all',
+  session: `s-${Date.now().toString(36)}`
 };
+
+/* Everything said and done goes to the history file; failures here never disturb the UI. */
+function remember(role, text, extra) {
+  if (!text || !String(text).trim()) return;
+  api.history.add({ role, text: String(text), session: state.session, t: Date.now(), ...extra }).catch(() => {});
+}
 
 const PHASE_TEXT = {
   offline: 'Başlamak için küreye dokun',
@@ -165,7 +172,7 @@ function upsertMessage(role, text, final, interrupted) {
   el.textContent = text;
   el.classList.toggle('partial', !final);
   if (interrupted) el.classList.add('interrupted');
-  if (final) partial[role] = null;
+  if (final) { partial[role] = null; remember(role, text); }
   setCaption(role === 'model' ? text : `“${text}”`);
   scrollConvo();
 }
@@ -186,6 +193,7 @@ function addToolMessage(tool) {
   // Tool chips sit before an in-progress model bubble so the reply reads after the action.
   if (partial.model) partial.model.before(el); else $('#convo').append(el);
   scrollConvo();
+  remember('tool', tool.title, { tool: tool.name });
   return el;
 }
 
@@ -445,6 +453,58 @@ function fillSettings() {
   f.chime.checked = !!s.chime;
   f.shortcut.value = s.shortcut || '';
   for (const r of f.theme) r.checked = r.value === s.theme;
+  f.mcpConfig.value = s.mcpConfig || '';
+  $('#mcp-error').hidden = true;
+}
+
+/* ------------------------------------------------------- memory & skills view */
+
+async function renderMemory() {
+  const [memory, skills] = await Promise.all([api.store.get('memory'), api.store.get('skills')]);
+  $('#memory-list').innerHTML = (memory || []).slice().reverse().map((m) => `
+    <div class="note-item memory"><b>${esc(m.text)}</b><time>${m.topic ? `${esc(m.topic)} · ` : ''}${new Date(m.createdAt).toLocaleDateString('tr-TR', { dateStyle: 'medium' })}</time>
+    <span class="item-actions"><button class="icon-btn" data-del-memory="${esc(m.id)}" title="Unut">${icon('trash')}</button></span></div>`).join('')
+    || '<p class="empty-note">Henüz bir şey hatırlamıyor. “Bunu hatırla: …” demen yeterli.</p>';
+  $('#skill-list').innerHTML = (skills || []).map((k) => `
+    <div class="note-item"><b>${esc(k.name)}</b>${k.description ? `<p>${esc(k.description)}</p>` : ''}
+    <div class="steps">${k.steps.map((x) => `<span>${esc(state.toolByName.get(x.tool)?.title || x.tool)}</span>`).join('')}</div>
+    <time>${k.steps.length} adım${k.runs ? ` · ${k.runs} kez çalıştı` : ''}</time>
+    <span class="item-actions"><button class="icon-btn" data-run-skill="${esc(k.name)}" title="Çalıştır">${icon('play')}</button><button class="icon-btn" data-del-skill="${esc(k.id)}" title="Sil">${icon('trash')}</button></span></div>`).join('')
+    || '<p class="empty-note">Henüz beceri yok.</p>';
+}
+
+/* ------------------------------------------------------------- history view */
+
+let historyTimer;
+async function renderHistory() {
+  const q = $('#history-search').value.trim();
+  const items = await api.history.search({ query: q, limit: 300 });
+  const icons = { user: 'user', model: 'sparkles', tool: 'layers', system: 'info' };
+  const words = q.toLocaleLowerCase('tr').split(/\s+/).filter(Boolean);
+  const mark = (text) => {
+    let html = esc(text);
+    for (const w of words) html = html.replace(new RegExp(esc(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), (m) => `<mark>${m}</mark>`);
+    return html;
+  };
+  let day = '';
+  let html = '';
+  for (const e of items) {
+    const d = new Date(e.t);
+    const label = d.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    if (label !== day) { day = label; html += `<h3>${esc(label)}</h3>`; }
+    html += `<div class="h-row ${e.role}"><time>${d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</time><span>${icon(icons[e.role] || 'chat')}</span><p>${mark(e.text)}</p></div>`;
+  }
+  $('#history-list').innerHTML = html || `<p class="act-empty">${q ? 'Eşleşen kayıt yok.' : 'Henüz geçmiş yok. Vektör ile konuştukça burada birikir.'}</p>`;
+}
+
+/* ---------------------------------------------------------------- mcp panel */
+
+async function renderMcp(list) {
+  list = list || await api.mcp.status();
+  const label = { connected: 'Bağlı', connecting: 'Bağlanıyor', error: 'Hata', disabled: 'Kapalı' };
+  const tone = { connected: 'tone-success', error: 'tone-danger', connecting: '', disabled: '' };
+  $('#mcp-status').innerHTML = list.map((m) => `
+    <li><span class="row-icon">${icon('plug')}</span><span class="row-main"><b>${esc(m.name)}</b><small>${m.state === 'connected' ? `${m.tools} araç` : esc(m.error || (m.kind === 'http' ? 'Uzak sunucu' : 'Yerel komut'))}</small></span><span class="pill ${tone[m.state] || ''}">${label[m.state] || m.state}</span></li>`).join('');
 }
 
 function applyTheme(theme) {
@@ -497,7 +557,9 @@ function openView(view, after) {
   if (view === 'tools') renderLibrary();
   if (view === 'activity') renderActivity();
   if (view === 'notes') renderNotes();
-  if (view === 'settings') fillSettings();
+  if (view === 'memory') renderMemory();
+  if (view === 'history') renderHistory();
+  if (view === 'settings') { fillSettings(); renderMcp(); }
   after?.();
 }
 
@@ -597,7 +659,47 @@ function wire() {
     if (del) await api.store.set('todos', todos.filter((t) => t.id !== del.dataset.delTodo));
     else if (li) await api.store.set('todos', todos.map((t) => (t.id === li.dataset.todo ? { ...t, done: !t.done, doneAt: Date.now() } : t)));
   });
-  api.store.onChange(() => state.view === 'notes' && renderNotes());
+  api.store.onChange(({ key } = {}) => {
+    if (state.view === 'notes' && (key === 'notes' || key === 'todos')) renderNotes();
+    if (state.view === 'memory' && (key === 'memory' || key === 'skills')) renderMemory();
+  });
+
+  // Memory & skills
+  $('#memory-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = $('#memory-input').value.trim();
+    if (!text) return;
+    const r = await api.tools.execute('remember', { text }, 'manual');
+    if (r.ok) $('#memory-input').value = ''; else toast(r.summary, 'error');
+  });
+  $('#memory-list').addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-del-memory]');
+    if (!b) return;
+    await api.store.set('memory', (await api.store.get('memory')).filter((m) => m.id !== b.dataset.delMemory));
+  });
+  $('#skill-list').addEventListener('click', async (e) => {
+    const run = e.target.closest('[data-run-skill]');
+    const del = e.target.closest('[data-del-skill]');
+    if (run) { openView('assistant'); runTool('skill_run', { name: run.dataset.runSkill }, 'manual'); }
+    if (del) await api.store.set('skills', (await api.store.get('skills')).filter((k) => k.id !== del.dataset.delSkill));
+  });
+
+  // History
+  $('#history-search').addEventListener('input', () => { clearTimeout(historyTimer); historyTimer = setTimeout(renderHistory, 200); });
+  $('#history-clear').addEventListener('click', async () => {
+    if (!window.confirm('Tüm konuşma geçmişi silinsin mi? Bu geri alınamaz.')) return;
+    await api.history.clear();
+    renderHistory();
+  });
+
+  // MCP
+  api.mcp.onStatus((list) => { if (state.view === 'settings') renderMcp(list); });
+  $('#mcp-reload').addEventListener('click', async () => renderMcp(await api.mcp.reload()));
+  api.tools.onChanged(async () => {
+    state.catalog = await api.tools.catalog();
+    state.toolByName = new Map(state.catalog.tools.map((t) => [t.name, t]));
+    if (state.view === 'tools') renderLibrary();
+  });
 
   // Settings
   const f = $('#settings-form');
@@ -610,6 +712,14 @@ function wire() {
   $$('[data-open]', f).forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); api.shell.open(a.dataset.open); }));
   f.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const mcpConfig = f.mcpConfig.value.trim();
+    if (mcpConfig) {
+      try { JSON.parse(mcpConfig); $('#mcp-error').hidden = true; } catch (err) {
+        $('#mcp-error').textContent = `Geçerli JSON değil: ${err.message}`;
+        $('#mcp-error').hidden = false;
+        return;
+      }
+    }
     const model = f.model.value === '__custom' ? f.modelCustom.value.trim() : f.model.value;
     const patch = {
       apiKey: f.apiKey.value.trim(),
@@ -621,6 +731,7 @@ function wire() {
       autoConnect: f.autoConnect.checked,
       chime: f.chime.checked,
       shortcut: f.shortcut.value.trim(),
+      mcpConfig,
       theme: [...f.theme].find((r) => r.checked)?.value || 'dark'
     };
     const needsReconnect = agent.connected && ['apiKey', 'model', 'voice', 'persona'].some((k) => patch[k] !== state.settings[k]);
