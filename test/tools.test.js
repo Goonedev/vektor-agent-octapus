@@ -217,7 +217,7 @@ test('the full library has 500+ tools; only core tools are declared to the live 
   const declared = tools.declarations().map((d) => d.name);
   assert.ok(declared.length < 140, `${declared.length} declarations is too many for a live session`);
   for (const n of ['find_tools', 'use_tool', 'find_a_way', 'run_steps', 'open_app']) assert.ok(declared.includes(n), n);
-  assert.ok(!declared.some((n) => /^(settings|site|search|key|text|calc|info|sys|files|dev)_/.test(n) && !['search_files'].includes(n)));
+  assert.ok(!declared.some((n) => /^(settings|site|search|key|text|calc|info|sys|files|dev)_/.test(n) && !['search_files', 'search_history'].includes(n)));
   const index = tools.packIndex();
   for (const t of tools.TOOLS.filter((x) => x.pack)) assert.ok(index.includes(t.name), `${t.name} missing from the pack index`);
 });
@@ -252,4 +252,19 @@ test('use_tool still routes dangerous library tools through confirmation', async
   assert.equal(asked, 1);
   assert.equal(r.ok, false);
   assert.equal(r.denied, true);
+});
+
+test('UI Automation press script escapes labels and its answers parse', () => {
+  const { pressScript, parsePress } = require('../src/main/tools/uia');
+  const s = pressScript({ labels: ["Kaydet'e bas"], windows: ['Yükle'], avoid: ['iptal'], timeoutSec: 5, enterAfterSec: 2 });
+  assert.match(s, /'Kaydet''e bas'/);
+  assert.match(s, /\$loose=\$false/);
+  assert.match(s, /AddSeconds\(2\)/);
+  assert.deepEqual(parsePress('noise\nOK|Yükle|invoke|closed\n'), { ok: true, name: 'Yükle', method: 'invoke', closed: true });
+  assert.equal(parsePress('ENTER|Yükle - Portal|open').closed, false);
+  assert.deepEqual(parsePress('NOWINDOW'), { ok: false, reason: 'nowindow' });
+  const nf = parsePress('NOTFOUND|Steam ; Yükle - Portal|Yükle ; İptal');
+  assert.equal(nf.ok, false);
+  assert.deepEqual(nf.windows, ['Steam', 'Yükle - Portal']);
+  assert.deepEqual(nf.names, ['Yükle', 'İptal']);
 });

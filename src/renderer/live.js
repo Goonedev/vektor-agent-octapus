@@ -15,7 +15,7 @@ const stripControl = (t) => t.replace(/<ctrl\d+>/gi, '');
 
 export const VOICES = ['Kore', 'Puck', 'Charon', 'Fenrir', 'Aoede', 'Leda', 'Orus', 'Zephyr', 'Sulafat', 'Achird'];
 
-function systemPrompt(settings, info, packIndex = '') {
+function systemPrompt(settings, info, packIndex = '', mind = {}) {
   const now = new Date();
   const os = { win32: 'Windows', darwin: 'macOS', linux: 'Linux' }[info.platform] || info.platform;
   return `Sen Vektör'sün: kullanıcının ${os} bilgisayarında yaşayan, sesle konuşulan bir yapay zekâ asistanısın.
@@ -46,6 +46,11 @@ Araçlar:
 - Dosya yollarında "masaüstü", "indirilenler", "belgeler", "resimler" takma adlarını kullanabilirsin.
 - Bir araç hata verirse nedenini sade bir dille söyle ve varsa alternatif öner.
 
+Hafıza, beceriler ve geçmiş:
+- Kullanıcı kalıcı bir tercih ya da kendisiyle ilgili bir bilgi söylerse ("adım…", "bundan sonra…", "bunu hatırla") remember ile kaydet; "unut" derse forget kullan. Şifre, kart numarası, anahtar gibi gizli bilgileri asla kaydetme.
+- Kullanıcı bir rutini adlandırıp kaydetmek isterse ("bunu çalışma modu olarak kaydet") adımları kur ve skill_save ile kaydet. Kayıtlı bir becerinin adını söylerse skill_run ile çalıştır.
+- Eski konuşmalarla ilgili sorularda ("dün ne konuşmuştuk?") search_history kullan.
+${mind.memory?.length ? `\nKullanıcı hakkında hatırladıkların (kullan ama her seferinde tekrarlama):\n${mind.memory.map((m) => `- ${m.text}`).join('\n')}\n` : ''}${mind.skills?.length ? `\nKayıtlı beceriler (adı söylenince skill_run): ${mind.skills.map((k) => `${k.name}${k.description ? ` (${k.description})` : ''}`).join('; ')}\n` : ''}${mind.recent?.length ? `\nÖnceki oturumun son mesajları (bağlam için; kullanıcı devam etmek isterse kullan):\n${mind.recent.map((e) => `${e.role === 'user' ? 'Kullanıcı' : 'Sen'}: ${e.text.slice(0, 200)}`).join('\n')}\n` : ''}
 Kütüphane (use_tool ile adıyla çalıştır):
 ${packIndex}
 
@@ -108,11 +113,16 @@ export class LiveAgent extends EventTarget {
     }
     this.userClosed = false;
     this.setPhase('connecting');
-    const [declarations, packIndex] = await Promise.all([window.vektor.tools.declarations(), window.vektor.tools.packIndex()]);
+    const [declarations, packIndex, memory, skills, recent] = await Promise.all([
+      window.vektor.tools.declarations(), window.vektor.tools.packIndex(),
+      window.vektor.store.get('memory'), window.vektor.store.get('skills'),
+      this.resumeHandle ? [] : window.vektor.history.recent(10)
+    ]);
+    const mind = { memory: (memory || []).slice(-60), skills: skills || [], recent: recent || [] };
     const ai = new GoogleGenAI({ apiKey: settings.apiKey });
     const config = {
       responseModalities: [Modality.AUDIO],
-      systemInstruction: { parts: [{ text: systemPrompt(settings, info, packIndex) }] },
+      systemInstruction: { parts: [{ text: systemPrompt(settings, info, packIndex, mind) }] },
       speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: settings.voice || 'Kore' } } },
       tools: [{ functionDeclarations: declarations }],
       inputAudioTranscription: {},

@@ -33,6 +33,8 @@
     <button data-view="tools" title="Araçlar"><span data-icon="grid"></span><small>Araçlar</small></button>
     <button data-view="activity" title="Etkinlik"><span data-icon="activity"></span><small>Etkinlik</small></button>
     <button data-view="notes" title="Notlar"><span data-icon="note"></span><small>Notlar</small></button>
+    <button data-view="memory" title="Hafıza ve beceriler"><span data-icon="lightbulb"></span><small>Hafıza</small></button>
+    <button data-view="history" title="Geçmiş"><span data-icon="history"></span><small>Geçmiş</small></button>
     <span class="rail-spacer"></span>
     <button data-view="settings" title="Ayarlar"><span data-icon="gear"></span><small>Ayarlar</small><i class="badge-dot" id="update-dot" hidden></i></button>
   </nav>
@@ -111,6 +113,43 @@
       </div>
     </section>
 
+    <!-- Memory and skills -->
+    <section class="view" data-view="memory">
+      <div class="view-head">
+        <div>
+          <h1>Hafıza ve beceriler</h1>
+          <p class="lead">Vektör'ün senin hakkında hatırladıkları ve tek komutla çalıştırdığın rutinler. Hepsi yalnızca bu bilgisayarda durur.</p>
+        </div>
+      </div>
+      <div class="notes-grid">
+        <div class="panel glass">
+          <h2>Hafıza</h2>
+          <form class="inline-add" id="memory-form"><input id="memory-input" maxlength="300" placeholder="Hatırlanacak bir şey… (ör. Bana Kadir diye hitap et)"><button class="btn primary sm">Ekle</button></form>
+          <div class="note-list" id="memory-list"></div>
+        </div>
+        <div class="panel glass">
+          <h2>Beceriler</h2>
+          <p class="panel-hint">“Şunu ‘çalışma modu’ diye bir beceri olarak kaydet” de; sonra “çalışma modu” demen yeterli. Onay isteyen adımlar yine sorar.</p>
+          <div class="note-list" id="skill-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- History -->
+    <section class="view" data-view="history">
+      <div class="view-head">
+        <div>
+          <h1>Geçmiş</h1>
+          <p class="lead">Konuştuklarınız ve Vektör'ün yaptığı işler. Vektör'e “dün ne konuşmuştuk?” diye de sorabilirsin.</p>
+        </div>
+        <div class="head-actions">
+          <label class="search glass"><span data-icon="search"></span><input id="history-search" placeholder="Geçmişte ara…"></label>
+          <button class="btn secondary" id="history-clear">Temizle</button>
+        </div>
+      </div>
+      <div class="history glass" id="history-list"></div>
+    </section>
+
     <!-- Settings -->
     <section class="view" data-view="settings">
       <div class="view-head">
@@ -163,6 +202,17 @@
             <input name="shortcut" spellcheck="false">
             <small>Her yerden dinlemeyi aç/kapat. Örn. CommandOrControl+Shift+Space</small>
           </label>
+        </div>
+        <div class="panel glass mcp-panel">
+          <h2>MCP bağlantıları</h2>
+          <p class="panel-hint">MCP sunucularının araçları Vektör'ün kütüphanesine eklenir. Claude Desktop ile aynı biçim. Yalnızca güvendiğin sunucuları ekle: buraya yazılan komutlar bu bilgisayarda çalışır. Salt okunur olarak işaretlenmeyen her araç çalışmadan önce onay ister.</p>
+          <label class="field">
+            <span>Sunucular (JSON)</span>
+            <textarea name="mcpConfig" rows="7" spellcheck="false" class="mono" placeholder='{"mcpServers": {"dosyalar": {"command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:/Users/ben/Belgeler"]}}}'></textarea>
+            <small id="mcp-error" class="field-error" hidden></small>
+          </label>
+          <ul class="rows" id="mcp-status"></ul>
+          <div class="field-row end"><button type="button" class="btn secondary sm" id="mcp-reload">Yeniden bağlan</button></div>
         </div>
         <div class="panel glass update-panel">
           <h2>Güncellemeler</h2>

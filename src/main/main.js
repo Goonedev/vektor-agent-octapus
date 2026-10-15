@@ -13,6 +13,8 @@ const tools = require('./tools');
 const { setKnownDirs, setNativeDir } = require('./tools/util');
 const clip = require('./clip');
 const { setupUpdater } = require('./updater');
+const { History } = require('./history');
+const { McpManager } = require('./mcp');
 
 const isMac = process.platform === 'darwin';
 const isWin = process.platform === 'win32';
@@ -26,7 +28,7 @@ if (isWin) app.setAppUserModelId('com.vektor.assistant');
 let mainWindow = null;
 let miniWindow = null;
 let tray = null;
-let store, scheduler;
+let store, scheduler, history, mcp;
 let quitting = false;
 let updater = { check: () => {} };
 let lastState = { phase: 'idle', label: 'Hazır', level: 0 };
@@ -43,12 +45,17 @@ const DEFAULTS = {
     shortcut: 'CommandOrControl+Shift+Space',
     autoConnect: false,
     confirmDanger: true,
-    chime: true
+    chime: true,
+    mcpConfig: ''
   },
   notes: [],
   todos: [],
-  schedule: []
+  schedule: [],
+  memory: [],
+  skills: []
 };
+
+const SHARED_KEYS = ['notes', 'todos', 'memory', 'skills'];
 
 /* ------------------------------------------------------------ helpers */
 
@@ -114,6 +121,7 @@ function toolContext(source) {
     electron: { shell, desktopCapturer, screen, nativeTheme, nativeImage, app },
     store,
     scheduler,
+    history,
     clip,
     clipboardHistory,
     notify,
@@ -149,11 +157,20 @@ ipcMain.handle('settings:set', (e, patch) => {
   if (patch.miniIsland !== undefined) next.miniIsland ? createMiniWindow() : miniWindow?.close();
   if (patch.theme !== undefined) nativeTheme.themeSource = next.theme === 'system' ? 'system' : next.theme;
   broadcast('settings:changed', next);
+  if (patch.mcpConfig !== undefined && patch.mcpConfig !== prev.mcpConfig) mcp?.apply(next.mcpConfig);
   return next;
 });
 
-ipcMain.handle('store:get', (e, key) => (['notes', 'todos'].includes(key) ? store.get(key) : null));
-ipcMain.handle('store:set', (e, key, value) => (['notes', 'todos'].includes(key) ? store.set(key, value) : null));
+ipcMain.handle('mcp:status', () => mcp?.status() || []);
+ipcMain.handle('mcp:reload', () => mcp?.apply(store.get('settings').mcpConfig));
+
+ipcMain.handle('history:add', (e, entry) => history.add(entry));
+ipcMain.handle('history:search', (e, opts) => history.search(opts || {}));
+ipcMain.handle('history:recent', (e, n) => history.recent(n));
+ipcMain.handle('history:clear', () => history.clear());
+
+ipcMain.handle('store:get', (e, key) => (SHARED_KEYS.includes(key) ? store.get(key) : null));
+ipcMain.handle('store:set', (e, key, value) => (SHARED_KEYS.includes(key) && Array.isArray(value) ? store.set(key, value) : null));
 ipcMain.handle('schedule:list', () => scheduler.list());
 ipcMain.handle('schedule:cancel', (e, id) => scheduler.remove(id));
 ipcMain.handle('app:info', () => ({ platform: process.platform, version: app.getVersion(), electron: process.versions.electron }));
@@ -321,7 +338,14 @@ app.whenReady().then(async () => {
   }
   nativeTheme.themeSource = store.get('settings').theme === 'system' ? 'system' : store.get('settings').theme;
 
-  store.on('change', (key) => { if (key === 'notes' || key === 'todos') broadcast('store:changed', { key, value: store.get(key) }); });
+  store.on('change', (key) => { if (SHARED_KEYS.includes(key)) broadcast('store:changed', { key, value: store.get(key) }); });
+  history = new History(path.join(app.getPath('userData'), 'history.jsonl'));
+
+  // MCP servers the user configured; their tools join the library once connected.
+  tools.onChange(() => broadcast('tools:changed'));
+  mcp = new McpManager({ setDynamic: tools.setDynamic, log: (...a) => console.log('[vektor]', ...a), clientInfo: { name: 'vektor', version: app.getVersion() } });
+  mcp.onStatus = (list) => broadcast('mcp:status', list);
+  if (store.get('settings').mcpConfig) mcp.apply(store.get('settings').mcpConfig);
 
   scheduler = new Scheduler(store);
   scheduler.on('change', () => broadcast('schedule:changed', scheduler.list()));
@@ -351,6 +375,6 @@ app.whenReady().then(async () => {
 });
 
 app.on('activate', showMain);
-app.on('before-quit', () => { quitting = true; store?.flush(); });
+app.on('before-quit', () => { quitting = true; store?.flush(); mcp?.closeAll(); });
 app.on('will-quit', () => globalShortcut.unregisterAll());
 app.on('window-all-closed', () => { /* stays in the tray */ });

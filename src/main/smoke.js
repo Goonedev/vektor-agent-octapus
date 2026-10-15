@@ -39,7 +39,10 @@ const SAFE = [
   ['info_moon_phase', {}], ['dev_cron_explain', { expression: '*/15 9-17 * * 1-5' }], ['dev_versions', {}],
   ['sys_uptime', {}], ['sys_top_memory', {}],
   ['files_folder_size', { path: path.join(os.tmpdir(), 'vektor-smoke') }], ['files_tree', { path: path.join(os.tmpdir(), 'vektor-smoke') }],
-  ['files_hash', { path: path.join(os.tmpdir(), 'vektor-smoke', 'a.txt') }], ['files_count_by_type', { path: path.join(os.tmpdir(), 'vektor-smoke') }]
+  ['files_hash', { path: path.join(os.tmpdir(), 'vektor-smoke', 'a.txt') }], ['files_count_by_type', { path: path.join(os.tmpdir(), 'vektor-smoke') }],
+  ['remember', { text: 'Smoke testi: kullanıcı kısa cevap sever.' }], ['recall', {}],
+  ['skill_save', { name: 'Smoke modu', description: 'Test rutini', steps: [{ tool: 'calc_roman', args_json: '{"value":"2026"}' }, { tool: 'current_datetime', args_json: '{}' }] }],
+  ['skill_run', { name: 'smoke modu' }], ['skill_list', {}], ['search_history', {}]
 ];
 
 // Network-dependent tools are reported but never fail the run.
@@ -67,6 +70,18 @@ async function runSmoke({ tools, ctx, windows, app, outDir }) {
     if (!win || win.isDestroyed()) continue;
     const img = await win.webContents.capturePage();
     fs.writeFileSync(path.join(outDir, `${key}.png`), img.toPNG());
+  }
+  // The other views of the main window, for a visual check.
+  const main = windows.main;
+  if (main && !main.isDestroyed()) {
+    for (const view of ['tools', 'memory', 'history', 'settings']) {
+      await main.webContents.executeJavaScript(`document.querySelector('.rail [data-view="${view}"]')?.click()`).catch(() => {});
+      // Offscreen (CI) windows hand back the previous frame on the first capture after a change.
+      await new Promise((res) => setTimeout(res, 900));
+      await main.webContents.capturePage();
+      await new Promise((res) => setTimeout(res, 600));
+      fs.writeFileSync(path.join(outDir, `view-${view}.png`), (await main.webContents.capturePage()).toPNG());
+    }
   }
   console.log(['', '── Vektör smoke test ──', ...report, `── ${report.length} araç, ${failed} başarısız ──`, ''].join('\n'));
   app.exit(failed ? 1 : 0);

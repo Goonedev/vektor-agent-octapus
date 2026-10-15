@@ -12,57 +12,7 @@
  */
 
 const { isWin, isMac, ToolError, ps, psStr, osa, osaStr, unsupported } = require('./util');
-
-/* Finds a control whose visible text matches `label` and invokes it. Prefers an exact
- * (case-insensitive) match, then "starts with", then "contains". Returns the matched name. */
-function winScript(label, windowTitle) {
-  return `
-$ErrorActionPreference='Stop'
-Add-Type -AssemblyName UIAutomationClient,UIAutomationTypes,WindowsBase
-Add-Type -TypeDefinition 'using System;using System.Runtime.InteropServices;public class _FG{[DllImport("user32.dll")]public static extern IntPtr GetForegroundWindow();}'
-$AE=[System.Windows.Automation.AutomationElement]
-$CT=[System.Windows.Automation.ControlType]
-$want=${psStr(label)}
-$winTitle=${psStr(windowTitle || '')}
-if ($winTitle) {
-  $root=$null
-  foreach ($w in $AE::RootElement.FindAll('Children',[System.Windows.Automation.Condition]::TrueCondition)) {
-    if ($w.Current.Name -and $w.Current.Name.ToLower().Contains($winTitle.ToLower())) { $root=$w; break }
-  }
-  if (-not $root) { 'NOWINDOW'; exit }
-} else {
-  $root=$AE::FromHandle([_FG]::GetForegroundWindow())
-}
-$types=@($CT::Button,$CT::Hyperlink,$CT::MenuItem,$CT::ListItem,$CT::CheckBox,$CT::RadioButton,$CT::TabItem,$CT::SplitButton,$CT::Text)
-$conds=@(); foreach($t in $types){ $conds += New-Object System.Windows.Automation.PropertyCondition($AE::ControlTypeProperty,$t) }
-$cond=New-Object System.Windows.Automation.OrCondition($conds)
-$all=$root.FindAll('Descendants',$cond)
-$wl=$want.ToLower()
-$exact=$null;$starts=$null;$contains=$null
-foreach($e in $all){
-  $n=$e.Current.Name; if(-not $n){continue}
-  $nl=$n.ToLower()
-  if($nl -eq $wl){ $exact=$e; break }
-  elseif(-not $starts -and $nl.StartsWith($wl)){ $starts=$e }
-  elseif(-not $contains -and $nl.Contains($wl)){ $contains=$e }
-}
-$el=if($exact){$exact}elseif($starts){$starts}else{$contains}
-if(-not $el){ 'NOTFOUND'; exit }
-$name=$el.Current.Name
-try{ $el.SetFocus() }catch{}
-$inv=$null
-if($el.TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern,[ref]$inv)){ $inv.Invoke() }
-elseif($el.TryGetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern,[ref]$inv)){ $inv.Toggle() }
-elseif($el.TryGetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern,[ref]$inv)){ $inv.Select() }
-elseif($el.TryGetCurrentPattern([System.Windows.Automation.ExpandCollapsePattern]::Pattern,[ref]$inv)){ $inv.Expand() }
-else{
-  $p=$el.GetClickablePoint()
-  Add-Type -TypeDefinition 'using System;using System.Runtime.InteropServices;public class _M{[DllImport("user32.dll")]public static extern bool SetCursorPos(int x,int y);[DllImport("user32.dll")]public static extern void mouse_event(uint f,uint x,uint y,uint d,int e);}'
-  [_M]::SetCursorPos([int]$p.X,[int]$p.Y);Start-Sleep -Milliseconds 40;[_M]::mouse_event(2,0,0,0,0);[_M]::mouse_event(4,0,0,0,0)
-}
-'OK:'+$name
-`;
-}
+const { pressScript, parsePress } = require('./uia');
 
 function winList(windowTitle) {
   return `
@@ -75,7 +25,7 @@ $winTitle=${psStr(windowTitle || '')}
 if ($winTitle) {
   $root=$null
   foreach ($w in $AE::RootElement.FindAll('Children',[System.Windows.Automation.Condition]::TrueCondition)) {
-    if ($w.Current.Name -and $w.Current.Name.ToLower().Contains($winTitle.ToLower())) { $root=$w; break }
+    if ($w.Current.Name -and $w.Current.Name -like ('*'+[System.Management.Automation.WildcardPattern]::Escape($winTitle)+'*')) { $root=$w; break }
   }
   if (-not $root) { exit }
 } else { $root=$AE::FromHandle([_FG]::GetForegroundWindow()) }
@@ -117,11 +67,19 @@ module.exports = [
     run: async (a, ctx) => {
       await ctx.yieldFocus?.();
       if (isWin) {
-        const out = (await ps(winScript(a.label, a.window), { timeout: 15000 })).trim().split('\n').pop();
-        if (out === 'NOWINDOW') throw new ToolError(`“${a.window}” penceresi bulunamadı.`);
-        if (out === 'NOTFOUND') throw new ToolError(`Ekranda “${a.label}” düğmesi bulunamadı. Doğru pencere önde mi?`);
-        const name = out.startsWith('OK:') ? out.slice(3) : a.label;
-        return { summary: `“${name}” düğmesine basıldı.`, display: { type: 'keys', combo: name } };
+        // A few seconds of polling: Chromium-based apps only expose their controls once asked.
+        const r = parsePress(await ps(pressScript({ labels: [a.label], windows: a.window ? [a.window] : [], loose: true, timeoutSec: 6 }), { timeout: 25000 }));
+        if (!r.ok && r.reason === 'nowindow') throw new ToolError(`“${a.window}” penceresi bulunamadı.`);
+        if (!r.ok) {
+          const seen = (r.names || []).filter((n) => n.length < 30).slice(0, 12);
+          throw new ToolError(`Ekranda “${a.label}” düğmesi bulunamadı.${seen.length ? ` Görünenler: ${seen.join(', ')}.` : ''}`, 'Doğru pencere önde mi? list_buttons ile bakabilir ya da window parametresiyle pencereyi belirtebilirsin.');
+        }
+        const how = { click: 'tıklanarak', invoke: '', toggle: '', select: '', expand: '' }[r.method] ?? '';
+        return {
+          summary: `“${r.name}” düğmesine ${how ? `${how} ` : ''}basıldı.${r.closed ? ' Pencere kapandı.' : ''}`,
+          display: { type: 'keys', combo: r.name },
+          data: { pressed: r.name, method: r.method, window_closed: r.closed }
+        };
       }
       if (isMac) {
         const out = await clickMac(a.label, a.window);

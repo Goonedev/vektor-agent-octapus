@@ -20,7 +20,8 @@ const CATEGORIES = [
   { id: 'sites', title: 'Siteler', icon: 'link' },
   { id: 'shortcuts', title: 'Kısayollar', icon: 'keyboard' },
   { id: 'text', title: 'Metin', icon: 'doc' },
-  { id: 'info', title: 'Bilgi', icon: 'info' }
+  { id: 'info', title: 'Bilgi', icon: 'info' },
+  { id: 'mcp', title: 'MCP bağlantıları', icon: 'plug' }
 ];
 
 /* Core tools are declared to the live model directly. */
@@ -35,7 +36,8 @@ const CORE = [
   ...require('./actions'),
   ...require('./ui'),
   ...require('./steps'),
-  ...require('./research')
+  ...require('./research'),
+  ...require('./memory')
 ];
 
 /* Packs: the larger library, reached through find_tools / use_tool (and run_steps). */
@@ -56,6 +58,27 @@ const TOOLS = [...CORE, ...PACKS];
 TOOLS.push(...require('./meta').make({ TOOLS, CATEGORIES, execute: (...a) => execute(...a) }));
 
 const BY_NAME = new Map(TOOLS.map((t) => [t.name, t]));
+
+/*
+ * Tools added at run time (MCP servers). They live in the library like the packs: listed in the
+ * system prompt, found with find_tools, run with use_tool, and confirmed unless read-only.
+ */
+const listeners = new Set();
+function onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); }
+
+/** Replaces every tool whose `source` is `source` with `list`. */
+function setDynamic(source, list) {
+  for (let i = TOOLS.length - 1; i >= 0; i--) {
+    if (TOOLS[i].source === source) { BY_NAME.delete(TOOLS[i].name); TOOLS.splice(i, 1); }
+  }
+  for (const t of list) {
+    if (BY_NAME.has(t.name)) continue; // never shadow a built-in tool
+    const tool = { ...t, source, pack: true };
+    TOOLS.push(tool);
+    BY_NAME.set(tool.name, tool);
+  }
+  for (const fn of listeners) { try { fn(); } catch { /* listener errors never break the registry */ } }
+}
 
 /* Per-tool glyphs for cards and the library; anything not listed uses its category's glyph. */
 const ICONS = {
@@ -137,7 +160,7 @@ function catalog() {
 /** Pack tool names grouped by category, for the system prompt: the model can use_tool them directly. */
 function packIndex() {
   return CATEGORIES.map((c) => {
-    const names = PACKS.filter((t) => t.category === c.id).map((t) => t.name);
+    const names = TOOLS.filter((t) => t.pack && t.category === c.id).map((t) => t.name);
     return names.length ? `${c.title}: ${names.join(', ')}` : null;
   }).filter(Boolean).join('\n');
 }
@@ -182,7 +205,8 @@ async function execute(name, rawArgs, ctx) {
   const started = Date.now();
   if (!tool) return { ok: false, summary: `Bilinmeyen araç: ${name}`, ms: 0 };
 
-  const args = coerce(rawArgs, tool.params);
+  // MCP tools may take keys their schema does not spell out; keep them, but still coerce known ones.
+  const args = tool.passthrough ? { ...(rawArgs || {}), ...coerce(rawArgs, tool.params) } : coerce(rawArgs, tool.params);
   const missing = Object.entries(tool.params || {}).filter(([k, p]) => p.required && args[k] === undefined).map(([k]) => k);
   if (missing.length) return { ok: false, summary: `Eksik parametre: ${missing.join(', ')}`, ms: 0 };
 
@@ -215,4 +239,4 @@ function forModel(result) {
   return out;
 }
 
-module.exports = { TOOLS, CATEGORIES, declarations, packIndex, catalog, execute, forModel, coerce };
+module.exports = { TOOLS, CATEGORIES, declarations, packIndex, catalog, execute, forModel, coerce, setDynamic, onChange };
