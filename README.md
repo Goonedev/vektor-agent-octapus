@@ -12,6 +12,10 @@ Vektör, bilgisayarında yaşayan sesli bir yapay zekâ asistanı. Konuşursun, 
 - **Canlı bileşenler.** Her araç çağrısı sağ panelde bir kart olarak açılır ve sonucuna göre şekil alır: hava durumu kartı, CPU/bellek halkaları, dosya listeleri, ekran görüntüsü önizlemesi, geri sayan zamanlayıcılar, klavye kısayolu tuşları, terminal çıktısı.
 - **Mini ada.** Ekranın en üstünde, Dynamic Island tarzı küçük bir çubuk. Her zaman üstte durur, Vektör'ün o anki durumunu, konuşmanın altyazısını ve çalışan aracı gösterir. Üzerine gelince mikrofon ve "aç" düğmeleri çıkar; geri kalan alana tıklamalar arkadaki pencerelere geçer.
 - **569 işlevsel araç.** 113 ana araç ve 456 araçlık bir kütüphane: Windows ayar sayfaları ve sistem araçları, 100 site ve site içi arama, kısayollar, metin ve hesap araçları, bilgi servisleri, sistem bilgisi, geliştirici ve dosya araçları. Hepsi bilgisayarda gerçekten bir şey yapar. Tam liste aşağıda.
+- **Kalıcı hafıza.** "Bunu hatırla" dediğin tercihleri ve bilgileri saklar, her yeni oturumda kullanır; şifre, kart numarası gibi bilgileri kaydetmez. Hafıza ekranından görüp silebilirsin.
+- **Beceriler (rutinler).** "Bunu çalışma modu olarak kaydet" de, sonra "çalışma modu" demen yeterli. Onay isteyen adımlar yine sorar.
+- **Geçmiş.** Her konuşma ve yapılan iş kaydedilir; Geçmiş ekranında ararsın ya da "dün ne konuşmuştuk?" diye sorarsın.
+- **MCP bağlantıları.** Ayarlar'a Claude Desktop biçiminde MCP sunucuları eklersin; araçları Vektör'ün kütüphanesine katılır. Salt okunur olmayan her araç onay ister.
 - **"Yapamam" yerine yol arar.** Doğrudan bir aracı yoksa kütüphanede arar (find_tools), bulamazsa işin nasıl yapıldığını web'de araştırıp araçlarla uygulanabilir bir plana çevirir (find_a_way) ve uygular. Reddettiğin bir işi başka yoldan zorlamaz.
 - **İşi sonuna kadar götürür.** Açılan "Yükle", "İndir", "Kaydet", "Tamam" gibi düğmelere her uygulamada kendisi basar (click_button).
 - "Şarkı aç" dersen YouTube'da bulup videoyu oynatır; "Steam'den X'i indir" dersen kurulumu başlatıp "Yükle"ye basar; "şu projede şunu düzelt" dersen Claude Code'u o klasörde çalıştırıp sonucu özetler.
